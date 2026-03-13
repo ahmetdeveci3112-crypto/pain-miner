@@ -2,7 +2,9 @@
 //  Pain Miner — Frontend Application
 // ================================================================
 
-const API = '';
+const API = window.location.hostname === 'localhost'
+    ? ''
+    : 'https://pain-miner-api.fly.dev';
 
 // ── State ──────────────────────────────────────────────────────────
 let currentPage = 'dashboard';
