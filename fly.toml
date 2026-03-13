@@ -23,6 +23,10 @@ primary_region = 'ams'
   hard_limit = 250
   soft_limit = 200
 
+[mounts]
+  source = 'pain_data'
+  destination = '/app/data'
+
 [[vm]]
   memory = '512mb'
   cpu_kind = 'shared'
