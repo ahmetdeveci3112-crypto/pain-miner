@@ -1,0 +1,17 @@
+You are an expert community strategist. Based on the following post summaries from various online communities, suggest 10-15 other online communities (subreddits, forums, etc.) where similar problems and pain points are actively discussed.
+
+For each suggestion, provide:
+- subreddit: the name (without r/ prefix)
+- reason: why this community is relevant (1 sentence)
+- expected_volume: "low", "medium", or "high" — how many pain-point discussions you'd expect
+
+Focus on communities where people actively complain about problems, ask for tools, or discuss workarounds.
+
+Post summaries:
+{SUMMARIES}
+
+Respond with a JSON array like:
+[
+  {"subreddit": "freelance", "reason": "Freelancers discuss payment and client management pain points", "expected_volume": "high"},
+  {"subreddit": "webdev", "reason": "Web developers discuss tooling frustrations", "expected_volume": "medium"}
+]

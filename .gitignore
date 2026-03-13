@@ -1,0 +1,24 @@
+# .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+
+# Data
+data/
+logs/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store

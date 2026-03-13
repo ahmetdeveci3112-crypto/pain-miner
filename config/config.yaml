@@ -1,0 +1,104 @@
+# config/config.yaml — Pain Miner Configuration
+
+# Target communities
+platforms:
+  reddit:
+    enabled: true
+    subreddits:
+      primary:
+        - startups
+        - entrepreneur
+        - SaaS
+        - webdev
+        - sysadmin
+        - freelance
+        - marketing
+        - smallbusiness
+        - selfhosted
+        - devops
+        - personalfinance
+        - Parenting
+        - Fitness
+        - technology
+        - security
+      exploratory_limit: 12
+      exploratory_refresh_days: 7
+      exploratory_percentage: 80
+      primary_percentage: 20
+
+  hackernews:
+    enabled: true
+    categories:
+      - ask          # Ask HN posts
+      - show         # Show HN posts
+      - top          # Top stories
+      - new          # New stories
+
+  producthunt:
+    enabled: true
+    days_back: 7     # Scrape posts from last N days
+
+# Scraping settings
+scraper:
+  min_post_age_days: 1
+  max_post_age_days: 30
+  max_items_per_platform: 50
+  include_comments: true
+  rate_limit_per_minute: 60
+
+# AI settings (Gemini 2.5 Flash Lite)
+ai:
+  provider: gemini
+  model: gemini-2.5-flash-lite
+  monthly_budget_usd: 50
+  max_tokens_per_post: 1000
+
+# Problem patterns (regex for pre-filtering)
+problem_patterns:
+  - "I wish there was"
+  - "does anyone know how to"
+  - "I hate using"
+  - "why is there no"
+  - "looking for tool"
+  - "looking for a tool"
+  - "any tool for"
+  - "I'm struggling with"
+  - "frustrated with"
+  - "pain point"
+  - "there has to be a better way"
+  - "is there an app"
+  - "is there a service"
+  - "can't find a good"
+  - "tired of"
+  - "waste of time"
+  - "spent hours"
+  - "manually doing"
+  - "anyone found a solution"
+  - "need a better"
+
+# Scoring weights
+scoring:
+  relevance_weight: 0.25
+  emotion_weight: 0.10
+  pain_point_weight: 0.20
+  implementability_weight: 0.15
+  technical_depth_weight: 0.20
+  recent_activity_weight: 0.10
+  min_score_threshold: 5.0
+  output_top_n: 20
+
+# Database settings
+database:
+  path: data/pain_miner.db
+  retention_days: 90
+
+# Scheduler
+scheduler:
+  interval_hours: 6
+
+# Logging
+log_level: INFO
+
+# Cleanup
+cleanup:
+  batch_response_retention_days: 7

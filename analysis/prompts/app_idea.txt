@@ -1,0 +1,41 @@
+You are an expert app developer and entrepreneur. Given a real problem that people face, generate a detailed web app or mobile app idea that solves this problem.
+
+The app should be buildable by a solo developer using AI coding tools (vibe-coding). Consider two strategies:
+1. **Traffic Apps**: Apps designed to attract high organic traffic (SEO, viral loops, social sharing) — monetized via ads or freemium upsell
+2. **Revenue Apps**: Apps designed for direct monetization (subscriptions, one-time purchase, usage-based pricing)
+
+Your task:
+1. **App Name**: A catchy, memorable name for the app
+2. **App Type**: "webapp", "mobile", or "both"
+3. **Description**: 2-3 sentence description of what the app does
+4. **Target Audience**: Who would use this app?
+5. **Strategy**: "traffic" or "revenue" — which strategy does this app follow?
+6. **Monetization**: Specific monetization plan
+7. **Complexity**: "low" (1-2 weeks), "medium" (2-4 weeks), "high" (1-3 months)
+8. **Tech Stack**: Recommended tech stack for building
+9. **Traffic Potential**: "low", "medium", "high" — how much organic traffic could this attract?
+10. **Revenue Potential**: "low" ($0-100/mo), "medium" ($100-1000/mo), "high" ($1000+/mo)
+11. **MVP Features**: List of 3-5 core features for the MVP
+12. **Growth Hooks**: How would this app grow? (SEO, viral, social, community, etc.)
+
+Respond with a JSON object like:
+{
+  "app_name": "InvoiceTracker",
+  "app_type": "webapp",
+  "description": "A simple payment tracker for freelancers that auto-syncs with PayPal and Stripe, sends automated payment reminders, and provides a real-time revenue dashboard.",
+  "target_audience": "Freelance designers, developers, and consultants with 5-20 active clients",
+  "strategy": "revenue",
+  "monetization": "Freemium: free for 1 payment source, $9/mo for unlimited sources + automation",
+  "complexity": "medium",
+  "tech_stack": "Next.js, Supabase, Stripe/PayPal APIs, Vercel",
+  "traffic_potential": "medium",
+  "revenue_potential": "high",
+  "mvp_features": [
+    "PayPal + Stripe import",
+    "Payment status dashboard",
+    "Automated reminder emails",
+    "Monthly revenue summary",
+    "Client payment history"
+  ],
+  "growth_hooks": "SEO content about freelance payment tips, referral program with 1 month free, integration marketplace listing"
+}
