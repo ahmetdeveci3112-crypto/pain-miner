@@ -28,7 +28,7 @@ def get_client():
 
 
 def analyze_with_gemini(prompt: str, system_prompt: str = None,
-                        retries: int = 3) -> Optional[dict]:
+                        retries: int = 5) -> Optional[dict]:
     """Send a prompt to Gemini and parse JSON response."""
     client = get_client()
     config = get_config()
@@ -68,20 +68,20 @@ def analyze_with_gemini(prompt: str, system_prompt: str = None,
                 time.sleep(1)
         except Exception as e:
             error_msg = str(e)
-            if "429" in error_msg or "quota" in error_msg.lower():
-                wait = (attempt + 1) * 5
-                log.warning(f"Rate limited. Waiting {wait}s...")
+            if "429" in error_msg or "quota" in error_msg.lower() or "resource" in error_msg.lower():
+                wait = (attempt + 1) * 10
+                log.warning(f"Rate limited. Waiting {wait}s... (attempt {attempt + 1}/{retries})")
                 time.sleep(wait)
             else:
                 log.error(f"Gemini API error (attempt {attempt + 1}): {e}")
                 if attempt < retries - 1:
-                    time.sleep(2)
+                    time.sleep(3)
 
     return None
 
 
 def batch_analyze(items: List[dict], prompt_builder, system_prompt: str = None,
-                  delay: float = 0.5) -> List[Tuple[str, Optional[dict]]]:
+                  delay: float = 3.0) -> List[Tuple[str, Optional[dict]]]:
     """Analyze a batch of items sequentially with rate limiting.
 
     Args:
