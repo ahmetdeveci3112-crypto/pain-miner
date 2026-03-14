@@ -1,116 +1,122 @@
-# scrapers/reddit_scraper.py — Reddit scraper with OAuth2 app-only flow for datacenter access
+# scrapers/reddit_scraper.py — Reddit scraper via RSS feeds (NO API key, works from datacenters)
 
-import os
 import requests
 import time
 import datetime
 import random
+import re
+import xml.etree.ElementTree as ET
+from html import unescape
 
 from utils.logger import setup_logger
-from utils.helpers import sanitize_text
 from config.config_loader import get_config
 from db.reader import is_already_processed
 
 log = setup_logger()
 
-# Reddit blocks ALL non-API requests from datacenter IPs (Fly.io, AWS, etc).
-# The ONLY way to scrape Reddit from a server is via the OAuth API.
-# "Application Only" OAuth is FREE and requires no user interaction,
-# just a client_id and client_secret from https://www.reddit.com/prefs/apps
-OAUTH_TOKEN_URL = "https://www.reddit.com/api/v1/access_token"
-OAUTH_API_BASE = "https://oauth.reddit.com"
+# Reddit RSS feeds work from both residential AND datacenter IPs.
+# No API key, no OAuth, no CAPTCHA — just plain Atom/RSS.
+REDDIT_RSS = "https://www.reddit.com/r/{subreddit}/{sort}/.rss?limit=25"
 
-# Fallback for local/residential IPs where JSON endpoints still work
-PUBLIC_BASE = "https://old.reddit.com"
+ATOM_NS = {"atom": "http://www.w3.org/2005/Atom"}
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
 ]
 
-# Cache the OAuth token
-_oauth_token = None
-_oauth_token_expiry = 0
+
+def _strip_html(html_text):
+    """Remove HTML tags and decode entities."""
+    if not html_text:
+        return ""
+    clean = re.sub(r"<[^>]+>", " ", html_text)
+    clean = unescape(clean)
+    return " ".join(clean.split()).strip()
 
 
-def _get_oauth_token():
-    """Get an OAuth2 application-only access token from Reddit."""
-    global _oauth_token, _oauth_token_expiry
+def _fetch_rss(subreddit, sort="hot", retries=3):
+    """Fetch RSS feed for a subreddit."""
+    url = REDDIT_RSS.format(subreddit=subreddit, sort=sort)
 
-    # Return cached token if still valid
-    if _oauth_token and time.time() < _oauth_token_expiry - 60:
-        return _oauth_token
+    for attempt in range(retries):
+        try:
+            resp = requests.get(url, headers={
+                "User-Agent": random.choice(USER_AGENTS),
+                "Accept": "application/atom+xml, application/rss+xml, application/xml, text/xml, */*",
+            }, timeout=15)
 
-    client_id = os.getenv("REDDIT_CLIENT_ID", "")
-    client_secret = os.getenv("REDDIT_CLIENT_SECRET", "")
-
-    if not client_id or not client_secret:
-        return None
-
-    try:
-        resp = requests.post(
-            OAUTH_TOKEN_URL,
-            auth=(client_id, client_secret),
-            data={"grant_type": "client_credentials"},
-            headers={"User-Agent": "PainMiner/2.0 by pain-miner-bot"},
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            _oauth_token = data["access_token"]
-            _oauth_token_expiry = time.time() + data.get("expires_in", 3600)
-            log.info("Reddit OAuth token acquired successfully")
-            return _oauth_token
-        else:
-            log.warning(f"Reddit OAuth failed: {resp.status_code} {resp.text[:100]}")
-    except Exception as e:
-        log.error(f"Reddit OAuth error: {e}")
-
-    return None
-
-
-def _fetch_oauth(url):
-    """Fetch from Reddit OAuth API."""
-    token = _get_oauth_token()
-    if not token:
-        return None
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "User-Agent": "PainMiner/2.0 by pain-miner-bot",
-    }
-
-    try:
-        resp = requests.get(url, headers=headers, timeout=15)
-        if resp.status_code == 200:
-            return resp.json()
-        elif resp.status_code == 429:
-            log.warning("Reddit OAuth rate limited, waiting 10s...")
-            time.sleep(10)
-        else:
-            log.warning(f"Reddit OAuth returned {resp.status_code}")
-    except Exception as e:
-        log.warning(f"Reddit OAuth fetch error: {e}")
+            if resp.status_code == 200:
+                return resp.text
+            elif resp.status_code == 429:
+                wait = 10 * (attempt + 1)
+                log.warning(f"Reddit RSS rate limited. Waiting {wait}s...")
+                time.sleep(wait)
+            elif resp.status_code == 403:
+                log.warning(f"Reddit RSS 403 for r/{subreddit}/{sort} (attempt {attempt+1})")
+                time.sleep(5)
+            else:
+                log.warning(f"Reddit RSS returned {resp.status_code} for r/{subreddit}/{sort}")
+                return None
+        except Exception as e:
+            log.warning(f"Reddit RSS error (attempt {attempt+1}): {e}")
+            time.sleep(3)
 
     return None
 
 
-def _fetch_public_json(url):
-    """Fetch from public JSON endpoint (works from residential IPs)."""
-    headers = {
-        "User-Agent": random.choice(USER_AGENTS),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-    }
+def _parse_rss_entries(xml_text, subreddit) -> list:
+    """Parse Atom/RSS feed and extract posts."""
     try:
-        resp = requests.get(url, headers=headers, timeout=15)
-        if resp.status_code == 200:
-            return resp.json()
-        elif resp.status_code == 403:
-            return None  # Datacenter IP blocked
-    except Exception:
-        pass
-    return None
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as e:
+        log.error(f"RSS parse error for r/{subreddit}: {e}")
+        return []
+
+    entries = root.findall("atom:entry", ATOM_NS)
+    posts = []
+
+    for entry in entries:
+        id_el = entry.find("atom:id", ATOM_NS)
+        title_el = entry.find("atom:title", ATOM_NS)
+        link_el = entry.find("atom:link", ATOM_NS)
+        content_el = entry.find("atom:content", ATOM_NS)
+        updated_el = entry.find("atom:updated", ATOM_NS)
+
+        # Extract Reddit post ID from the entry ID (format: t3_xxxxx)
+        entry_id = id_el.text if id_el is not None and id_el.text else ""
+        reddit_id = entry_id.replace("t3_", "") if entry_id.startswith("t3_") else entry_id
+
+        title = title_el.text.strip() if title_el is not None and title_el.text else ""
+        link = link_el.get("href", "") if link_el is not None else ""
+        content_html = content_el.text if content_el is not None and content_el.text else ""
+        updated = updated_el.text if updated_el is not None and updated_el.text else ""
+
+        if not title or not reddit_id:
+            continue
+
+        # Clean HTML content to get plain text body
+        body = _strip_html(content_html)
+
+        # Parse date
+        try:
+            created_utc = datetime.datetime.fromisoformat(
+                updated.replace("Z", "+00:00")
+            ).timestamp()
+        except Exception:
+            created_utc = datetime.datetime.now(datetime.timezone.utc).timestamp()
+
+        posts.append({
+            "reddit_id": reddit_id,
+            "title": title,
+            "body": body,
+            "url": link,
+            "created_utc": created_utc,
+        })
+
+    return posts
 
 
 def is_post_in_age_range(post_timestamp, min_days, max_days) -> bool:
@@ -119,32 +125,8 @@ def is_post_in_age_range(post_timestamp, min_days, max_days) -> bool:
     return min_days <= age_days <= max_days
 
 
-def fetch_subreddit_posts(subreddit_name, sort="hot", limit=25) -> list:
-    """Fetch posts from a subreddit. Tries OAuth API first, falls back to public JSON."""
-    # Try OAuth API first (works from datacenter IPs)
-    oauth_url = f"{OAUTH_API_BASE}/r/{subreddit_name}/{sort}?limit={limit}&raw_json=1&t=month"
-    data = _fetch_oauth(oauth_url)
-
-    # Fallback to public JSON (works from residential IPs)
-    if data is None:
-        public_url = f"{PUBLIC_BASE}/r/{subreddit_name}/{sort}.json?limit={limit}&raw_json=1&t=month"
-        data = _fetch_public_json(public_url)
-
-    if not data or "data" not in data:
-        return []
-
-    posts = []
-    for child in data.get("data", {}).get("children", []):
-        post = child.get("data", {})
-        if post.get("stickied"):
-            continue
-        posts.append(post)
-
-    return posts
-
-
 def scrape_reddit() -> list:
-    """Scrape subreddits. Uses OAuth API on servers, public JSON locally."""
+    """Scrape subreddits using RSS feeds. No API key needed. Works from datacenters."""
     config = get_config()
     platform_config = config["platforms"]["reddit"]
 
@@ -152,12 +134,7 @@ def scrape_reddit() -> list:
         log.info("Reddit scraping disabled")
         return []
 
-    # Check if OAuth is available
-    has_oauth = bool(os.getenv("REDDIT_CLIENT_ID")) and bool(os.getenv("REDDIT_CLIENT_SECRET"))
-    if has_oauth:
-        log.info("Reddit: Using OAuth API (server mode)")
-    else:
-        log.info("Reddit: Using public JSON endpoints (local mode)")
+    log.info("Reddit: Using RSS feeds (no API key needed)")
 
     subreddits = platform_config["subreddits"]["primary"]
     max_items = config["scraper"]["max_items_per_platform"]
@@ -166,61 +143,52 @@ def scrape_reddit() -> list:
 
     all_posts = []
     seen_ids = set()
-    per_subreddit = max(10, max_items // len(subreddits))
 
     for sub in subreddits:
-        log.info(f"Fetching r/{sub}...")
+        if len(all_posts) >= max_items:
+            break
+
+        log.info(f"Fetching r/{sub} RSS feed...")
 
         for sort_type in ["hot", "new"]:
-            # Rate limit: 2-3 seconds between requests
-            time.sleep(2 + random.uniform(0.5, 1.5))
+            # Rate limit: 3 seconds + jitter between requests
+            time.sleep(3 + random.uniform(0.5, 2.0))
 
-            raw_posts = fetch_subreddit_posts(sub, sort=sort_type, limit=per_subreddit)
+            xml_text = _fetch_rss(sub, sort=sort_type)
+            if not xml_text:
+                continue
 
-            for post in raw_posts:
-                reddit_id = post.get("id", "")
+            entries = _parse_rss_entries(xml_text, sub)
+
+            for entry in entries:
+                reddit_id = entry["reddit_id"]
                 post_id = f"reddit_{reddit_id}"
 
                 if reddit_id in seen_ids:
                     continue
                 seen_ids.add(reddit_id)
 
-                created_utc = post.get("created_utc", 0)
-                if not is_post_in_age_range(created_utc, min_days, max_days):
+                if not is_post_in_age_range(entry["created_utc"], min_days, max_days):
                     continue
                 if is_already_processed(post_id):
                     continue
 
-                title = post.get("title", "")
-                body = post.get("selftext", "")
-                permalink = post.get("permalink", "")
-
-                if not title:
-                    continue
-
-                post_body = body
-                if not post_body:
-                    ext_url = post.get("url", "")
-                    if ext_url:
-                        post_body = f"[Link post: {ext_url}]"
-                    else:
-                        post_body = title
+                body = entry["body"]
+                if not body or len(body) < 10:
+                    body = entry["title"]  # Use title as body for short/link posts
 
                 all_posts.append({
                     "id": post_id,
                     "platform": "reddit",
-                    "title": title,
-                    "body": post_body,
-                    "created_utc": created_utc,
+                    "title": entry["title"],
+                    "body": body,
+                    "created_utc": entry["created_utc"],
                     "source": sub,
-                    "url": f"https://www.reddit.com{permalink}",
+                    "url": entry["url"],
                     "type": "post",
                 })
 
-            log.info(f"  r/{sub}/{sort_type}: {len(raw_posts)} posts")
+            log.info(f"  r/{sub}/{sort_type}: {len(entries)} entries")
 
-        if len(all_posts) >= max_items:
-            break
-
-    log.info(f"Reddit: Total {len(all_posts)} items scraped")
+    log.info(f"Reddit: Total {len(all_posts)} items scraped (via RSS)")
     return all_posts[:max_items]
