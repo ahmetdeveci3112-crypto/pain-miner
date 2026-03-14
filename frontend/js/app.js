@@ -701,7 +701,15 @@ function formatNumber(num) { if (num == null) return '0'; return Number(num).toL
 function formatDate(dateStr) {
     if (!dateStr) return '—';
     try {
-        const d = new Date(dateStr);
+        // DB stores dates as UTC without timezone suffix — force UTC interpretation
+        let s = String(dateStr).trim();
+        if (!s.endsWith('Z') && !s.includes('+') && !s.includes('T')) {
+            s = s.replace(' ', 'T') + 'Z';
+        } else if (!s.endsWith('Z') && !s.includes('+')) {
+            s += 'Z';
+        }
+        const d = new Date(s);
+        if (isNaN(d.getTime())) return dateStr;
         return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul' });
     } catch { return dateStr; }
 }
