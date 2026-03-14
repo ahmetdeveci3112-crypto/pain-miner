@@ -3,12 +3,12 @@
 # AI
 google-genai>=1.0.0
 
-# Reddit scraping
-praw>=7.7.0
-
-# Web scraping
+# Web scraping (Reddit JSON, Product Hunt, HN)
 requests>=2.31.0
 beautifulsoup4>=4.12.0
+
+# Twitter/X scraping (no API key needed)
+twikit>=2.0.0
 
 # Configuration
 pyyaml>=6.0
@@ -18,5 +18,5 @@ python-dotenv>=1.0.0
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 
-# Scheduling (for future cron mode)
+# Scheduling (auto pipeline every hour)
 apscheduler>=3.10.1

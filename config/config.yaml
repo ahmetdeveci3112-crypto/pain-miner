@@ -38,13 +38,23 @@ platforms:
     enabled: true
     days_back: 7     # Scrape posts from last N days
 
+  twitter:
+    enabled: false   # Enable when TWITTER_USERNAME and TWITTER_PASSWORD are set
+    search_queries:
+      - '"I wish there was" app OR tool'
+      - '"frustrated with" software OR app'
+      - '"looking for a tool" OR "need a better"'
+      - '"is there an app" OR "why is there no"'
+      - '"pain point" startup OR saas'
+      - '"hate using" OR "waste of time" tool OR app'
+
 # Scraping settings
 scraper:
-  min_post_age_days: 1
+  min_post_age_days: 0
   max_post_age_days: 30
-  max_items_per_platform: 50
+  max_items_per_platform: 30
   include_comments: true
-  rate_limit_per_minute: 60
+  rate_limit_per_minute: 30
 
 # AI settings (Gemini 2.5 Flash Lite)
 ai:
@@ -92,9 +102,10 @@ database:
   path: data/pain_miner.db
   retention_days: 90
 
-# Scheduler
+# Scheduler — auto scrape every N hours
 scheduler:
-  interval_hours: 6
+  enabled: true
+  interval_hours: 1
 
 # Logging
 log_level: INFO

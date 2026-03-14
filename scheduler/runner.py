@@ -1,7 +1,8 @@
-# scheduler/runner.py — Main pipeline orchestrator
+# scheduler/runner.py — Main pipeline orchestrator with deduplication
 
 import json
 import time
+import hashlib
 from datetime import datetime, timezone
 
 from config.config_loader import get_config
@@ -14,6 +15,7 @@ from db.reader import get_posts_by_ids, get_top_insights_from_today, get_post_pa
 from scrapers.reddit_scraper import scrape_reddit
 from scrapers.hackernews_scraper import scrape_hackernews
 from scrapers.producthunt_scraper import scrape_producthunt
+from scrapers.twitter_scraper import scrape_twitter
 from analysis.gemini_client import analyze_with_gemini
 from analysis.filters import build_filter_prompt, calculate_weighted_score
 from analysis.insights import build_insight_prompt, build_app_idea_prompt
@@ -28,6 +30,43 @@ def is_valid_post(post: dict) -> bool:
     title = sanitize_text(post.get("title", ""))
     body = sanitize_text(post.get("body", ""))
     return bool(title) and bool(body) and len(body) > 10
+
+
+def content_hash(post: dict) -> str:
+    """Create a content hash to detect duplicate/near-duplicate posts."""
+    text = (post.get("title", "") + " " + post.get("body", "")).strip().lower()
+    # Normalize whitespace
+    text = " ".join(text.split())
+    return hashlib.md5(text.encode("utf-8")).hexdigest()
+
+
+def deduplicate_posts(posts: list) -> list:
+    """Remove duplicate posts based on content hash.
+    Posts with identical or near-identical content are dropped regardless of source.
+    """
+    seen_hashes = set()
+    seen_ids = set()
+    unique = []
+
+    for post in posts:
+        pid = post.get("id", "")
+        if pid in seen_ids:
+            continue
+        seen_ids.add(pid)
+
+        h = content_hash(post)
+        if h in seen_hashes:
+            log.debug(f"  Duplicate skipped: {post.get('title', '')[:60]}")
+            continue
+        seen_hashes.add(h)
+
+        unique.append(post)
+
+    removed = len(posts) - len(unique)
+    if removed > 0:
+        log.info(f"Deduplication: removed {removed} duplicate posts")
+
+    return unique
 
 
 def run_pipeline(platforms: list[str] = None, limit: int = None,
@@ -51,7 +90,7 @@ def run_pipeline(platforms: list[str] = None, limit: int = None,
     # Determine which platforms to scrape
     if platforms is None:
         platforms = []
-        for pname in ["reddit", "hackernews", "producthunt"]:
+        for pname in ["reddit", "hackernews", "producthunt", "twitter"]:
             if config["platforms"].get(pname, {}).get("enabled", False):
                 platforms.append(pname)
 
@@ -73,6 +112,8 @@ def run_pipeline(platforms: list[str] = None, limit: int = None,
                 posts = scrape_hackernews()
             elif platform == "producthunt":
                 posts = scrape_producthunt()
+            elif platform == "twitter":
+                posts = scrape_twitter()
             else:
                 log.warning(f"Unknown platform: {platform}")
                 continue
@@ -89,6 +130,9 @@ def run_pipeline(platforms: list[str] = None, limit: int = None,
         log.warning("No posts found. Exiting pipeline.")
         update_run(run_id, 0, 0, time.time() - start_time, "no_data")
         return
+
+    # ── Deduplication ───────────────────────────────────────────────
+    all_scraped = deduplicate_posts(all_scraped)
 
     # Filter valid posts
     valid_posts = [p for p in all_scraped if is_valid_post(p)]

@@ -1,37 +1,41 @@
-# scrapers/reddit_scraper.py — Reddit scraper adapted from Reddit_Scrapper
+# scrapers/reddit_scraper.py — Reddit scraper via public JSON endpoints (NO API key needed)
 
-import datetime
-import socket
+import requests
 import time
+import datetime
 
 from utils.logger import setup_logger
 from utils.helpers import sanitize_text
 from config.config_loader import get_config
 from db.reader import is_already_processed
-from scrapers.rate_limiter import RateLimiter
-
-socket.setdefaulttimeout(15)
 
 log = setup_logger()
 
+REDDIT_BASE = "https://www.reddit.com"
+HEADERS = {
+    "User-Agent": "PainMiner/2.0 (research bot; +https://github.com/pain-miner)",
+    "Accept": "application/json",
+}
 
-def _get_reddit_client():
-    """Create and return a PRAW Reddit client."""
-    import praw
-    config = get_config()
-    reddit_config = config.get("reddit", {})
 
-    if not reddit_config.get("client_id"):
-        log.warning("Reddit API credentials not configured. Skipping Reddit.")
-        return None
-
-    return praw.Reddit(
-        client_id=reddit_config["client_id"],
-        client_secret=reddit_config["client_secret"],
-        user_agent=reddit_config.get("user_agent", "pain-miner:v1.0"),
-        username=reddit_config.get("username"),
-        password=reddit_config.get("password"),
-    )
+def _fetch_reddit_json(url, retries=3):
+    """Fetch JSON from a Reddit URL with retry logic."""
+    for attempt in range(retries):
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=15)
+            if resp.status_code == 200:
+                return resp.json()
+            elif resp.status_code == 429:
+                wait = 10 * (attempt + 1)
+                log.warning(f"Reddit rate limited. Waiting {wait}s...")
+                time.sleep(wait)
+            else:
+                log.warning(f"Reddit returned {resp.status_code} for {url}")
+                return None
+        except Exception as e:
+            log.warning(f"Reddit fetch error (attempt {attempt+1}): {e}")
+            time.sleep(3)
+    return None
 
 
 def is_post_in_age_range(post_timestamp, min_days, max_days) -> bool:
@@ -40,122 +44,89 @@ def is_post_in_age_range(post_timestamp, min_days, max_days) -> bool:
     return min_days <= age_days <= max_days
 
 
-def safe_fetch(generator, name):
-    """Safely fetch from a Reddit listing generator."""
-    try:
-        log.info(f"→ Fetching {name}...")
-        return list(generator)
-    except Exception as e:
-        log.error(f"Error while fetching {name}: {e}")
+def fetch_subreddit_posts(subreddit_name, sort="hot", limit=25, after=None) -> list:
+    """Fetch posts from a subreddit using the public JSON endpoint."""
+    url = f"{REDDIT_BASE}/r/{subreddit_name}/{sort}.json?limit={limit}&raw_json=1"
+    if after:
+        url += f"&after={after}"
+
+    data = _fetch_reddit_json(url)
+    if not data or "data" not in data:
         return []
 
+    posts = []
+    for child in data.get("data", {}).get("children", []):
+        post = child.get("data", {})
+        if post.get("stickied"):
+            continue
+        posts.append(post)
 
-def fetch_posts_from_subreddit(reddit, subreddit_name, limiter, limit=200) -> list:
-    """Fetch posts (and optionally comments) from a subreddit."""
-    config = get_config()
-    min_days = config["scraper"]["min_post_age_days"]
-    max_days = config["scraper"]["max_post_age_days"]
-    include_comments = config["scraper"].get("include_comments", False)
-
-    results = []
-    seen_ids = set()
-
-    try:
-        log.info(f"Fetching posts from r/{subreddit_name}...")
-        subreddit = reddit.subreddit(subreddit_name)
-        combined = []
-
-        for fetch_name, fetch_method in [
-            ("top", subreddit.top(time_filter="month", limit=limit)),
-            ("hot", subreddit.hot(limit=limit)),
-            ("new", subreddit.new(limit=limit)),
-        ]:
-            limiter.wait()
-            posts = safe_fetch(fetch_method, f"r/{subreddit_name}/{fetch_name}")
-            combined.extend(posts)
-
-        log.info(f"Total fetched from r/{subreddit_name}: {len(combined)}")
-
-        for post in combined:
-            if post.id in seen_ids:
-                continue
-            seen_ids.add(post.id)
-
-            if not is_post_in_age_range(post.created_utc, min_days, max_days):
-                continue
-            if is_already_processed(f"reddit_{post.id}"):
-                continue
-
-            results.append({
-                "id": f"reddit_{post.id}",
-                "platform": "reddit",
-                "title": post.title,
-                "body": post.selftext or "",
-                "created_utc": post.created_utc,
-                "source": subreddit_name,
-                "url": f"https://www.reddit.com{post.permalink}",
-                "type": "post",
-            })
-
-            if include_comments:
-                try:
-                    limiter.wait()
-                    post.comments.replace_more(limit=0)
-                    for comment in post.comments.list()[:10]:  # Top 10 comments
-                        if comment.id in seen_ids:
-                            continue
-                        seen_ids.add(comment.id)
-
-                        if not is_post_in_age_range(comment.created_utc, min_days, max_days):
-                            continue
-                        if is_already_processed(f"reddit_{comment.id}"):
-                            continue
-
-                        results.append({
-                            "id": f"reddit_{comment.id}",
-                            "platform": "reddit",
-                            "title": post.title,
-                            "body": comment.body,
-                            "parent_body": post.selftext,
-                            "created_utc": comment.created_utc,
-                            "source": subreddit_name,
-                            "url": f"https://www.reddit.com{comment.permalink}",
-                            "type": "comment",
-                            "parent_post_id": f"reddit_{post.id}",
-                        })
-                except Exception as e:
-                    log.warning(f"Failed to fetch comments for {post.id}: {e}")
-
-    except Exception as e:
-        log.error(f"Error fetching from r/{subreddit_name}: {e}")
-
-    log.info(f"r/{subreddit_name}: {len(results)} items collected")
-    return results
+    return posts
 
 
 def scrape_reddit() -> list:
-    """Scrape configured subreddits and return all collected posts."""
+    """Scrape configured subreddits using public JSON endpoints. No API key needed."""
     config = get_config()
-    reddit = _get_reddit_client()
-    if reddit is None:
+    platform_config = config["platforms"]["reddit"]
+
+    if not platform_config.get("enabled", True):
+        log.info("Reddit scraping disabled")
         return []
 
-    platform_config = config["platforms"]["reddit"]
     subreddits = platform_config["subreddits"]["primary"]
     max_items = config["scraper"]["max_items_per_platform"]
-    rate_limit = config["scraper"].get("rate_limit_per_minute", 60)
-    limiter = RateLimiter(rate_limit)
+    min_days = config["scraper"]["min_post_age_days"]
+    max_days = config["scraper"]["max_post_age_days"]
 
     all_posts = []
-
-    per_subreddit = max(5, max_items // len(subreddits))
+    seen_ids = set()
+    per_subreddit = max(10, max_items // len(subreddits))
 
     for sub in subreddits:
-        posts = fetch_posts_from_subreddit(reddit, sub, limiter, limit=per_subreddit)
-        all_posts.extend(posts)
+        log.info(f"Fetching r/{sub} via JSON endpoint...")
+
+        for sort_type in ["hot", "top", "new"]:
+            # Rate limit: 2 seconds between requests to stay safe
+            time.sleep(2)
+
+            raw_posts = fetch_subreddit_posts(sub, sort=sort_type, limit=per_subreddit)
+
+            for post in raw_posts:
+                reddit_id = post.get("id", "")
+                post_id = f"reddit_{reddit_id}"
+
+                if reddit_id in seen_ids:
+                    continue
+                seen_ids.add(reddit_id)
+
+                created_utc = post.get("created_utc", 0)
+                if not is_post_in_age_range(created_utc, min_days, max_days):
+                    continue
+                if is_already_processed(post_id):
+                    continue
+
+                title = post.get("title", "")
+                body = post.get("selftext", "")
+                permalink = post.get("permalink", "")
+
+                if not title or (not body and not post.get("url", "")):
+                    continue
+
+                all_posts.append({
+                    "id": post_id,
+                    "platform": "reddit",
+                    "title": title,
+                    "body": body or f'[Link post: {post.get("url", "")}]',
+                    "created_utc": created_utc,
+                    "source": sub,
+                    "url": f"{REDDIT_BASE}{permalink}",
+                    "type": "post",
+                })
+
+            log.info(f"  r/{sub}/{sort_type}: {len(raw_posts)} posts fetched")
 
         if len(all_posts) >= max_items:
             break
 
-    log.info(f"Reddit: Total {len(all_posts)} items scraped")
+    log.info(f"Reddit: Total {len(all_posts)} items scraped (via JSON, no API key)")
     return all_posts[:max_items]

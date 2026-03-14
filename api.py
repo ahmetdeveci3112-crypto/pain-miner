@@ -12,6 +12,8 @@ from fastapi import FastAPI, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
 # Ensure project root is in path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -20,8 +22,10 @@ from config.config_loader import get_config
 from db.schema import create_tables
 from db.reader import get_stats, get_top_insights, get_app_ideas
 from utils.helpers import ensure_directory_exists
+from utils.logger import setup_logger
 
-app = FastAPI(title="Pain Miner", version="1.0.0")
+log = setup_logger()
+app = FastAPI(title="Pain Miner", version="2.0.0")
 
 # CORS
 app.add_middleware(
@@ -41,12 +45,60 @@ _scrape_status = {
 }
 
 
+# ── Auto Scheduler ─────────────────────────────────────────────────
+_scheduler = None
+
+def _auto_scrape_job():
+    """Background job: run the full pipeline automatically."""
+    global _scrape_status
+    with _scrape_lock:
+        if _scrape_status["running"]:
+            log.info("⏭ Auto-scrape skipped — manual scrape already running")
+            return
+        _scrape_status["running"] = True
+        _scrape_status["error"] = None
+        _scrape_status["result"] = None
+
+    try:
+        from scheduler.runner import run_pipeline
+        log.info("🕐 Auto-scheduler: starting pipeline...")
+        result = run_pipeline()
+        with _scrape_lock:
+            _scrape_status["result"] = result
+            _scrape_status["last_run"] = datetime.now(timezone.utc).isoformat()
+        log.info(f"🕐 Auto-scheduler: pipeline complete — {result}")
+    except Exception as e:
+        log.error(f"🕐 Auto-scheduler error: {e}")
+        with _scrape_lock:
+            _scrape_status["error"] = str(e)
+    finally:
+        with _scrape_lock:
+            _scrape_status["running"] = False
+
+
 # ── Startup ─────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup():
     ensure_directory_exists("data")
     ensure_directory_exists("logs")
     create_tables()
+
+    # Start auto-scheduler
+    global _scheduler
+    config = get_config()
+    sched_config = config.get("scheduler", {})
+    if sched_config.get("enabled", False):
+        interval = sched_config.get("interval_hours", 1)
+        _scheduler = BackgroundScheduler()
+        _scheduler.add_job(
+            _auto_scrape_job,
+            IntervalTrigger(hours=interval),
+            id="auto_scrape",
+            name=f"Auto scrape every {interval}h",
+            replace_existing=True,
+        )
+        _scheduler.start()
+        log.info(f"🕐 Auto-scheduler started: every {interval} hour(s)")
 
 
 # ── API Routes ──────────────────────────────────────────────────────
