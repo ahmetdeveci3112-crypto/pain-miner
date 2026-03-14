@@ -261,6 +261,7 @@ function renderProblemCard(p, index) {
                         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
                             <button class="icon-btn ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFav('${p.id}','problem',this)" title="Favorilere ekle">⭐</button>
                             <span class="platform-badge ${p.platform}">${platformIcon(p.platform)} ${p.platform}</span>
+                            <span class="card-timestamp">🕐 ${formatDate(p.processed_at)}</span>
                         </div>
                     </div>
                     <div class="problem-scores">
@@ -435,7 +436,7 @@ function renderIdeaCard(idea) {
                     <span class="platform-badge ${idea.platform}" style="font-size:0.65rem;padding:2px 8px;">${idea.platform}</span>
                     <a href="${escapeHtml(idea.post_url || '#')}" target="_blank" rel="noopener" class="idea-source-link" onclick="event.stopPropagation()">${escapeHtml(truncate(idea.post_title, 50))}</a>
                 </span>
-                <span class="expand-hint">Detaylar için tıkla</span>
+                <span class="card-timestamp">🕐 ${formatDate(idea.created_at)}</span>
             </div>
         </div>
     `;
@@ -699,8 +700,10 @@ function formatNumber(num) { if (num == null) return '0'; return Number(num).toL
 
 function formatDate(dateStr) {
     if (!dateStr) return '—';
-    try { const d = new Date(dateStr); return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
-    catch { return dateStr; }
+    try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul' });
+    } catch { return dateStr; }
 }
 
 function platformIcon(platform) { return { reddit: '◉', hackernews: '▲', producthunt: '🚀', twitter: '𝕏' }[platform] || '●'; }
