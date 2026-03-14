@@ -39,7 +39,7 @@ platforms:
     days_back: 7     # Scrape posts from last N days
 
   twitter:
-    enabled: false   # Enable when TWITTER_USERNAME and TWITTER_PASSWORD are set
+    enabled: true   # Credentials stored as Fly.io secrets
     search_queries:
       - '"I wish there was" app OR tool'
       - '"frustrated with" software OR app'
