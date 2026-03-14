@@ -1,41 +1,51 @@
-You are an expert app developer and entrepreneur. Given a real problem that people face, generate a detailed web app or mobile app idea that solves this problem.
+Sen uzman bir uygulama geliştiricisi ve girişimcisin. İnsanların yaşadığı gerçek bir problem verildiğinde, bu problemi çözen detaylı bir web veya mobil uygulama fikri üret.
 
-The app should be buildable by a solo developer using AI coding tools (vibe-coding). Consider two strategies:
-1. **Traffic Apps**: Apps designed to attract high organic traffic (SEO, viral loops, social sharing) — monetized via ads or freemium upsell
-2. **Revenue Apps**: Apps designed for direct monetization (subscriptions, one-time purchase, usage-based pricing)
+TÜM YANITLARINI TÜRKÇE VER. Uygulama adı dahil her şey Türkçe olacak.
 
-Your task:
-1. **App Name**: A catchy, memorable name for the app
-2. **App Type**: "webapp", "mobile", or "both"
-3. **Description**: 2-3 sentence description of what the app does
-4. **Target Audience**: Who would use this app?
-5. **Strategy**: "traffic" or "revenue" — which strategy does this app follow?
-6. **Monetization**: Specific monetization plan
-7. **Complexity**: "low" (1-2 weeks), "medium" (2-4 weeks), "high" (1-3 months)
-8. **Tech Stack**: Recommended tech stack for building
-9. **Traffic Potential**: "low", "medium", "high" — how much organic traffic could this attract?
-10. **Revenue Potential**: "low" ($0-100/mo), "medium" ($100-1000/mo), "high" ($1000+/mo)
-11. **MVP Features**: List of 3-5 core features for the MVP
-12. **Growth Hooks**: How would this app grow? (SEO, viral, social, community, etc.)
+Uygulama, AI kodlama araçlarıyla (vibe-coding) solo bir geliştirici tarafından yapılabilir olmalı. İki strateji düşün:
+1. **Trafik Uygulamaları**: Yüksek organik trafik çekmeye yönelik (SEO, viral döngüler, sosyal paylaşım) — reklam veya freemium ile para kazanma
+2. **Gelir Uygulamaları**: Doğrudan para kazanmaya yönelik (abonelik, tek seferlik satın alma, kullanıma dayalı fiyatlandırma)
 
-Respond with a JSON object like:
+⚠️ ÖNEMLİ — PRODUCT HUNT KAYNAKLARI İÇİN:
+Bu problem Product Hunt'tan geldiyse, orada zaten benzer bir uygulama mevcut demektir. Bu durumda:
+- Mevcut uygulamanın eksik kalan yönlerini belirle
+- Farklı bir niş veya hedef kitleye yönelik optimize et
+- Yaratıcı bir yaklaşımla fikri dönüştür — birebir kopya YAPMA
+- Daha iyi UX, farklı fiyatlandırma, veya ek özelliklerle farklılaştır
+- Mevcut ürünün zayıf noktalarını avantaja çevir
+
+Görevin:
+1. **Uygulama Adı**: Akılda kalıcı, Türkçe bir isim
+2. **Uygulama Türü**: "webapp", "mobile" veya "both"
+3. **Açıklama**: Uygulamanın ne yaptığını anlatan 2-3 cümle (Türkçe)
+4. **Hedef Kitle**: Bu uygulamayı kimler kullanır? (Türkçe)
+5. **Strateji**: "trafik" veya "gelir"
+6. **Para Kazanma**: Spesifik para kazanma planı (Türkçe)
+7. **Karmaşıklık**: "düşük" (1-2 hafta), "orta" (2-4 hafta), "yüksek" (1-3 ay)
+8. **Teknoloji Yığını**: Önerilen teknoloji yığını
+9. **Trafik Potansiyeli**: "düşük", "orta", "yüksek"
+10. **Gelir Potansiyeli**: "düşük" (₺0-3.000/ay), "orta" (₺3.000-30.000/ay), "yüksek" (₺30.000+/ay)
+11. **MVP Özellikleri**: MVP için 3-5 temel özellik listesi (Türkçe)
+12. **Büyüme Kancaları**: Bu uygulama nasıl büyür? (SEO, viral, sosyal, topluluk, vb.) (Türkçe)
+
+Şu formatta bir JSON nesnesi ile yanıt ver (TÜM DEĞERLER TÜRKÇE OLACAK):
 {
-  "app_name": "InvoiceTracker",
+  "app_name": "FaturaKolay",
   "app_type": "webapp",
-  "description": "A simple payment tracker for freelancers that auto-syncs with PayPal and Stripe, sends automated payment reminders, and provides a real-time revenue dashboard.",
-  "target_audience": "Freelance designers, developers, and consultants with 5-20 active clients",
-  "strategy": "revenue",
-  "monetization": "Freemium: free for 1 payment source, $9/mo for unlimited sources + automation",
-  "complexity": "medium",
-  "tech_stack": "Next.js, Supabase, Stripe/PayPal APIs, Vercel",
-  "traffic_potential": "medium",
-  "revenue_potential": "high",
+  "description": "Serbest çalışanlar için PayPal ve Stripe ile otomatik senkronize olan, ödeme hatırlatmaları gönderen ve gerçek zamanlı gelir paneli sunan basit bir ödeme takip uygulaması.",
+  "target_audience": "5-20 aktif müşterili serbest çalışan tasarımcılar, geliştiriciler ve danışmanlar",
+  "strategy": "gelir",
+  "monetization": "Freemium: 1 ödeme kaynağı için ücretsiz, sınırsız kaynak + otomasyon için ₺9/ay",
+  "complexity": "orta",
+  "tech_stack": "Next.js, Supabase, Stripe/PayPal API, Vercel",
+  "traffic_potential": "orta",
+  "revenue_potential": "yüksek",
   "mvp_features": [
-    "PayPal + Stripe import",
-    "Payment status dashboard",
-    "Automated reminder emails",
-    "Monthly revenue summary",
-    "Client payment history"
+    "PayPal + Stripe entegrasyonu",
+    "Ödeme durumu paneli",
+    "Otomatik hatırlatma e-postaları",
+    "Aylık gelir özeti",
+    "Müşteri ödeme geçmişi"
   ],
-  "growth_hooks": "SEO content about freelance payment tips, referral program with 1 month free, integration marketplace listing"
+  "growth_hooks": "Serbest çalışan ödeme ipuçları hakkında SEO içeriği, 1 ay ücretsiz referans programı, entegrasyon pazar yeri listesi"
 }

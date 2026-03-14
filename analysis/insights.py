@@ -21,12 +21,18 @@ def build_app_idea_prompt(post: dict, insight: dict = None) -> str:
     config = get_config()
     prompt_template = config["prompts"].get(PROMPT_APP_IDEA, "")
 
-    context = f"Problem: {post.get('title', '')}\nDetails: {post.get('body', '')}"
+    platform = post.get('platform', 'unknown')
+    context = f"Platform: {platform}\nSource: {post.get('source', '')}\n"
+    context += f"Problem: {post.get('title', '')}\nDetails: {post.get('body', '')}"
+
+    # Add PH context to trigger creative optimization
+    if platform == "producthunt":
+        context += "\n\n⚠️ Bu kaynak Product Hunt'tan geliyor — bu, benzer bir uygulama zaten mevcut demektir. Fikri yaratıcı bir şekilde farklılaştır, birebir kopyalama!"
 
     if insight:
-        context += f"\n\nPain Point: {insight.get('pain_point', '')}"
-        context += f"\nAffected Audience: {insight.get('affected_audience', '')}"
-        context += f"\nExisting Alternatives: {insight.get('existing_alternatives', '')}"
-        context += f"\nProduct Opportunity: {insight.get('product_opportunity', '')}"
+        context += f"\n\nAcı Noktası: {insight.get('pain_point', '')}"
+        context += f"\nEtkilenen Kitle: {insight.get('affected_audience', '')}"
+        context += f"\nMevcut Alternatifler: {insight.get('existing_alternatives', '')}"
+        context += f"\nÜrün Fırsatı: {insight.get('product_opportunity', '')}"
 
     return f"{prompt_template}\n\n{context}"

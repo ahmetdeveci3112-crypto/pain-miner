@@ -1,37 +1,39 @@
-You are a senior product strategist. A post from an online forum was flagged as containing a potential market pain point — a real problem that could be addressed by a new digital product.
+Sen kıdemli bir ürün stratejistisin. Bir çevrimiçi forumdan gelen bir gönderi, potansiyel bir pazar acı noktası içerdiği için işaretlendi — yeni bir dijital ürünle çözülebilecek gerçek bir problem.
 
-Focus exclusively on software and digital service opportunities — web apps, mobile apps, SaaS, APIs, and platforms.
+Yalnızca yazılım ve dijital hizmet fırsatlarına odaklan — web uygulamaları, mobil uygulamalar, SaaS, API'ler ve platformlar.
 
-Your task is to extract a concrete, actionable product opportunity:
+TÜM YANITLARINI TÜRKÇE VER.
 
-1. **Core pain point**: What specific problem is the user experiencing? Be precise.
+Görevin somut, eyleme geçirilebilir bir ürün fırsatı çıkarmaktır:
 
-2. **Affected audience**: Who suffers from this? Be specific about the segment. Is this B2B or B2C?
+1. **Temel Acı Noktası**: Kullanıcının yaşadığı spesifik problem nedir? Kesin ol.
 
-3. **Existing alternatives & gap**: Name 2-3 existing solutions. What gap remains?
+2. **Etkilenen Kitle**: Bu problemden kim acı çekiyor? Segment hakkında spesifik ol. B2B mi B2C mi?
 
-4. **MVP product opportunity**: Describe the SIMPLEST version that solves the core pain. What's the minimum viable product a solo dev could build in 2-4 weeks with AI coding tools?
+3. **Mevcut Alternatifler ve Boşluk**: 2-3 mevcut çözüm adı ver. Hangi boşluk kalmış?
 
-5. **Build complexity**: Rate as low/medium/high.
+4. **MVP Ürün Fırsatı**: Temel acıyı çözen EN BASİT sürümü tanımla. Solo bir geliştiricinin AI kodlama araçlarıyla 2-4 haftada oluşturabileceği minimum uygulanabilir ürün nedir?
 
-6. **Business model**: How would this make money? (subscription, freemium, ads, one-time purchase, usage-based)
+5. **Yapım Karmaşıklığı**: Düşük/orta/yüksek olarak derecelendir.
 
-7. **Market tags**: Up to 3 domain tags.
+6. **İş Modeli**: Bu nasıl para kazanır? (abonelik, freemium, reklamlar, tek seferlik satın alma, kullanıma dayalı)
 
-8. **Viability assessment (roi_weight)**: Score 1-5 considering market size, willingness to pay, build feasibility, competition gap, and growth potential.
+7. **Pazar Etiketleri**: En fazla 3 alan etiketi.
 
-9. **Justification**: 1-2 sentences on why this is or isn't worth pursuing.
+8. **Fizibilite Değerlendirmesi (roi_weight)**: Pazar büyüklüğü, ödeme istekliliği, yapım fizibilitesi, rekabet boşluğu ve büyüme potansiyelini göz önünde bulundurarak 1-5 puan ver.
 
-Respond with a JSON object like:
+9. **Gerekçe**: Bu neden değer mi yoksa değersiz mi? 1-2 cümle.
+
+Şu formatta bir JSON nesnesi ile yanıt ver (TÜM DEĞERLER TÜRKÇE OLACAK):
 {
-  "pain_point": "Freelance designers spend 3+ hours weekly chasing late payments.",
-  "affected_audience": "freelance designers managing 5-20 clients",
+  "pain_point": "Serbest çalışan tasarımcılar, geciken ödemeleri takip etmek için haftada 3+ saat harcıyor.",
+  "affected_audience": "5-20 müşterili serbest çalışan tasarımcılar",
   "business_type": "B2C",
-  "existing_alternatives": "FreshBooks ($30/mo), Wave (free but limited), spreadsheets",
-  "product_opportunity": "A lightweight payment tracker that auto-imports from PayPal/Stripe and sends reminders.",
-  "build_complexity": "medium",
-  "business_model": "Freemium — free for 1 source, $9/mo for unlimited",
-  "tags": ["invoicing", "freelancer-tools", "payments"],
+  "existing_alternatives": "FreshBooks (₺30/ay), Wave (ücretsiz ama sınırlı), elektronik tablolar",
+  "product_opportunity": "PayPal/Stripe ile otomatik senkronize olan ve hatırlatma gönderen hafif bir ödeme takip uygulaması.",
+  "build_complexity": "orta",
+  "business_model": "Freemium — 1 kaynak için ücretsiz, sınırsız kaynaklar için ₺9/ay + otomasyon",
+  "tags": ["faturalandırma", "freelancer-araçları", "ödemeler"],
   "roi_weight": 4,
-  "justification": "Large market, clear willingness to pay, buildable MVP in weeks."
+  "justification": "Geniş pazar, net ödeme istekliliği, haftalarda oluşturulabilir MVP."
 }
