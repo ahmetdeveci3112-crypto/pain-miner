@@ -15,7 +15,6 @@ from db.reader import get_posts_by_ids, get_top_insights_from_today, get_post_pa
 from scrapers.reddit_scraper import scrape_reddit
 from scrapers.hackernews_scraper import scrape_hackernews
 from scrapers.producthunt_scraper import scrape_producthunt
-from scrapers.twitter_scraper import scrape_twitter
 from analysis.gemini_client import analyze_with_gemini
 from analysis.filters import build_filter_prompt, calculate_weighted_score
 from analysis.insights import build_insight_prompt, build_app_idea_prompt
@@ -90,7 +89,7 @@ def run_pipeline(platforms: list[str] = None, limit: int = None,
     # Determine which platforms to scrape
     if platforms is None:
         platforms = []
-        for pname in ["reddit", "hackernews", "producthunt", "twitter"]:
+        for pname in ["reddit", "hackernews", "producthunt"]:
             if config["platforms"].get(pname, {}).get("enabled", False):
                 platforms.append(pname)
 
@@ -112,8 +111,6 @@ def run_pipeline(platforms: list[str] = None, limit: int = None,
                 posts = scrape_hackernews()
             elif platform == "producthunt":
                 posts = scrape_producthunt()
-            elif platform == "twitter":
-                posts = scrape_twitter()
             else:
                 log.warning(f"Unknown platform: {platform}")
                 continue

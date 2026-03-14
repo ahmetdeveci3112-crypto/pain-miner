@@ -38,16 +38,6 @@ platforms:
     enabled: true
     days_back: 7     # Scrape posts from last N days
 
-  twitter:
-    enabled: false   # Temporarily disabled — Twitter blocks all server-side scraping
-    search_queries:
-      - '"I wish there was" app OR tool'
-      - '"frustrated with" software OR app'
-      - '"looking for a tool" OR "need a better"'
-      - '"is there an app" OR "why is there no"'
-      - '"pain point" startup OR saas'
-      - '"hate using" OR "waste of time" tool OR app'
-
 # Scraping settings
 scraper:
   min_post_age_days: 0

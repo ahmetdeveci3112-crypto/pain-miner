@@ -522,7 +522,6 @@ async function renderScrape(container) {
                             <option value="reddit">Reddit</option>
                             <option value="hackernews">Hacker News</option>
                             <option value="producthunt">Product Hunt</option>
-                            <option value="twitter">Twitter / X</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -545,7 +544,7 @@ async function renderScrape(container) {
                 <div class="card-header"><div class="section-title">Tarama Akışı</div></div>
                 <div class="card-body" style="padding: 24px;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                        ${renderPipelineStep('1', 'Tarama', 'Reddit, HN, PH, X\'den gönderileri çek', '🌐')}
+                        ${renderPipelineStep('1', 'Tarama', 'Reddit, HN, PH\'den gönderileri çek', '🌐')}
                         ${renderPipelineStep('2', 'Filtreleme', 'Her gönderiyi AI ile puanla', '🔍')}
                         ${renderPipelineStep('3', 'Analiz', 'Yüksek potansiyelli sorunları derinlemesine analiz et', '🧠')}
                         ${renderPipelineStep('4', 'Üretim', 'Doğrulanmış sorunlardan fikir üret', '💡')}
@@ -714,7 +713,7 @@ function formatDate(dateStr) {
     } catch { return dateStr; }
 }
 
-function platformIcon(platform) { return { reddit: '◉', hackernews: '▲', producthunt: '🚀', twitter: '𝕏' }[platform] || '●'; }
+function platformIcon(platform) { return { reddit: '◉', hackernews: '▲', producthunt: '🚀' }[platform] || '●'; }
 function scoreClass(val, h, m) { if (val == null) return 'low'; if (val >= h) return 'high'; if (val >= m) return 'medium'; return 'low'; }
 function potentialClass(level) { if (!level) return 'low'; const l = level.toLowerCase(); if (l.includes('high') || l.includes('yüksek')) return 'high'; if (l.includes('medium') || l.includes('orta')) return 'medium'; return 'low'; }
 function getIdeaTypeClass(type) { if (!type) return 'default'; const t = type.toLowerCase(); if (t.includes('web')) return 'web'; if (t.includes('mobile')) return 'mobile'; if (t.includes('saas')) return 'saas'; if (t.includes('extension') || t.includes('plugin')) return 'extension'; return 'default'; }

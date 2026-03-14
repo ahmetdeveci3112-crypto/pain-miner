@@ -37,9 +37,9 @@
     --blue: #3b82f6;
     --blue-soft: rgba(59, 130, 246, 0.15);
 
-    /* Platform Colors */
+    /* Platform Colors — distinct, non-overlapping palette */
     --reddit: #ff4500;
-    --hackernews: #ff6600;
+    --hackernews: #f0a030;
     --producthunt: #da552f;
 
     /* Gradients */
@@ -518,29 +518,36 @@ table { border-collapse: collapse; width: 100%; }
     align-items: center;
     gap: 5px;
     padding: 4px 10px;
-    border-radius: 100px;
-    font-size: 0.72rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
+    border-left: 3px solid transparent;
 }
 
+/* Reddit — signature orange-red */
 .platform-badge.reddit {
-    background: rgba(255, 69, 0, 0.12);
-    color: var(--reddit);
-    border: 1px solid rgba(255, 69, 0, 0.2);
+    background: linear-gradient(135deg, rgba(255, 69, 0, 0.15), rgba(255, 69, 0, 0.06));
+    color: #ff6233;
+    border: 1px solid rgba(255, 69, 0, 0.25);
+    border-left: 3px solid #ff4500;
 }
 
+/* Hacker News — warm amber/gold */
 .platform-badge.hackernews {
-    background: rgba(255, 102, 0, 0.12);
-    color: var(--hackernews);
-    border: 1px solid rgba(255, 102, 0, 0.2);
+    background: linear-gradient(135deg, rgba(240, 160, 48, 0.15), rgba(240, 160, 48, 0.06));
+    color: #f0a030;
+    border: 1px solid rgba(240, 160, 48, 0.25);
+    border-left: 3px solid #f0a030;
 }
 
+/* Product Hunt — coral/salmon pink */
 .platform-badge.producthunt {
-    background: rgba(218, 85, 47, 0.12);
-    color: var(--producthunt);
-    border: 1px solid rgba(218, 85, 47, 0.2);
+    background: linear-gradient(135deg, rgba(218, 85, 47, 0.15), rgba(218, 85, 47, 0.06));
+    color: #e8744c;
+    border: 1px solid rgba(218, 85, 47, 0.25);
+    border-left: 3px solid #da552f;
 }
 
 /* ── Score / ROI Badges ────────────────────────────────────────── */
