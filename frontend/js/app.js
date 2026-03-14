@@ -181,9 +181,81 @@ async function renderProblems(container) {
                     <div class="section-subtitle">${(problems || []).length} problems found, sorted by ROI weight</div>
                 </div>
             </div>
-            <div class="glass-card">
-                <div class="card-body">
-                    ${renderProblemsTable(problems || [], false)}
+            <div class="problems-list">
+                ${(problems || []).length > 0
+                    ? (problems || []).map((p, i) => renderProblemCard(p, i)).join('')
+                    : `<div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <div class="empty-state-title">No problems discovered yet</div>
+                        <div class="empty-state-text">Run the scrape pipeline to start discovering real user problems from Reddit, Hacker News, and Product Hunt.</div>
+                        <a href="#scrape" class="btn btn-primary">Start Scraping →</a>
+                       </div>`
+                }
+            </div>
+        </div>
+    `;
+}
+
+function renderProblemCard(p, index) {
+    const painLevel = p.pain_score >= 7 ? 'critical' : p.pain_score >= 5 ? 'moderate' : 'low';
+    const painLabel = painLevel === 'critical' ? '🔴 Critical' : painLevel === 'moderate' ? '🟡 Moderate' : '🟢 Low';
+    const roiPercent = Math.min((p.roi_weight || 0) / 10 * 100, 100);
+    const tags = (p.tags || '').split(',').filter(t => t.trim());
+
+    return `
+        <div class="problem-card glass-card" onclick="this.classList.toggle('expanded')">
+            <div class="problem-card-main">
+                <div class="problem-rank">${index + 1}</div>
+                <div class="problem-content">
+                    <div class="problem-title-row">
+                        <a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener" class="problem-title" onclick="event.stopPropagation()">
+                            ${escapeHtml(p.title || 'Untitled')}
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.4; margin-left: 4px; flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+                        </a>
+                        <span class="platform-badge ${p.platform}">${platformIcon(p.platform)} ${p.platform}</span>
+                    </div>
+                    <div class="problem-scores">
+                        <div class="score-pill">
+                            <span class="score-label">ROI</span>
+                            <div class="score-bar-track"><div class="score-bar-fill purple" style="width: ${roiPercent}%"></div></div>
+                            <span class="score-value">${p.roi_weight || 0}</span>
+                        </div>
+                        <div class="score-pill">
+                            <span class="score-label">Pain</span>
+                            <span class="score-badge ${scoreClass(p.pain_score, 7, 5)}">${p.pain_score ? p.pain_score.toFixed(1) : '—'}</span>
+                        </div>
+                        <div class="score-pill">
+                            <span class="score-label">Relevance</span>
+                            <span class="score-badge ${scoreClass(p.relevance_score, 7, 5)}">${p.relevance_score ? p.relevance_score.toFixed(1) : '—'}</span>
+                        </div>
+                        <div class="score-pill">
+                            <span class="score-label">Emotion</span>
+                            <span class="score-badge ${scoreClass(p.emotion_score, 7, 5)}">${p.emotion_score ? p.emotion_score.toFixed(1) : '—'}</span>
+                        </div>
+                        <span class="pain-level ${painLevel}">${painLabel}</span>
+                    </div>
+                    ${tags.length > 0 ? `
+                        <div class="tags-container">${tags.map(t => `<span class="tag">${escapeHtml(t.trim())}</span>`).join('')}</div>
+                    ` : ''}
+                </div>
+                <div class="expand-icon">▾</div>
+            </div>
+            <div class="problem-details">
+                ${p.pain_point ? `
+                    <div class="detail-section">
+                        <div class="detail-label">🎯 Pain Point</div>
+                        <div class="detail-text">${escapeHtml(p.pain_point)}</div>
+                    </div>
+                ` : ''}
+                ${p.product_opportunity ? `
+                    <div class="detail-section">
+                        <div class="detail-label">💡 Product Opportunity</div>
+                        <div class="detail-text">${escapeHtml(p.product_opportunity)}</div>
+                    </div>
+                ` : ''}
+                <div class="detail-footer">
+                    <span class="detail-date">📅 ${p.processed_at || '—'}</span>
+                    <a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" onclick="event.stopPropagation()">View Source →</a>
                 </div>
             </div>
         </div>
@@ -203,37 +275,21 @@ function renderProblemsTable(problems, compact) {
     }
 
     return `
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th style="width: 40px;">#</th>
-                    <th>Problem</th>
-                    <th>Platform</th>
-                    ${!compact ? '<th>Pain Point</th>' : ''}
-                    <th>ROI</th>
-                    <th>Pain</th>
-                    ${!compact ? '<th>Tags</th>' : ''}
-                </tr>
-            </thead>
-            <tbody>
-                ${problems.map((p, i) => `
-                    <tr>
-                        <td style="color: var(--text-muted); font-size: 0.8rem;">${i + 1}</td>
-                        <td class="title-cell">
-                            ${p.url
-                                ? `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener">${escapeHtml(truncate(p.title, compact ? 60 : 90))}</a>`
-                                : escapeHtml(truncate(p.title, compact ? 60 : 90))
-                            }
-                        </td>
-                        <td><span class="platform-badge ${p.platform}">${platformIcon(p.platform)} ${p.platform}</span></td>
-                        ${!compact ? `<td style="max-width: 250px; font-size: 0.82rem;">${escapeHtml(truncate(p.pain_point, 100))}</td>` : ''}
-                        <td><span class="score-badge ${scoreClass(p.roi_weight, 80, 40)}">${p.roi_weight || 0}</span></td>
-                        <td><span class="score-badge ${scoreClass(p.pain_score, 8, 5)}">${p.pain_score ? p.pain_score.toFixed(1) : '—'}</span></td>
-                        ${!compact ? `<td><div class="tags-container">${(p.tags || '').split(',').filter(t=>t.trim()).slice(0,3).map(t => `<span class="tag">${escapeHtml(t.trim())}</span>`).join('')}</div></td>` : ''}
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
+        <div class="problems-preview-list">
+            ${problems.slice(0, compact ? 5 : problems.length).map((p, i) => `
+                <div class="problem-preview-item">
+                    <div class="problem-preview-rank">${i + 1}</div>
+                    <div class="problem-preview-content">
+                        <a href="${escapeHtml(p.url || '#')}" target="_blank" rel="noopener" class="problem-preview-title">${escapeHtml(p.title || 'Untitled')}</a>
+                        ${p.pain_point ? `<div class="problem-preview-pain">${escapeHtml(truncate(p.pain_point, 120))}</div>` : ''}
+                    </div>
+                    <div class="problem-preview-meta">
+                        <span class="platform-badge ${p.platform}" style="font-size: 0.65rem; padding: 2px 8px;">${platformIcon(p.platform)} ${p.platform}</span>
+                        <span class="score-badge ${scoreClass(p.roi_weight, 8, 4)}">ROI ${p.roi_weight || 0}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
     `;
 }
 
@@ -249,7 +305,7 @@ async function renderIdeas(container) {
                     <div class="section-subtitle">${(ideas || []).length} AI-generated product concepts</div>
                 </div>
             </div>
-            <div class="ideas-grid">
+            <div class="ideas-grid-v2">
                 ${(ideas || []).length > 0
                     ? ideas.map(idea => renderIdeaCard(idea)).join('')
                     : `<div class="empty-state" style="grid-column: 1 / -1;">
@@ -265,52 +321,86 @@ async function renderIdeas(container) {
 }
 
 function renderIdeaCard(idea) {
+    const typeIcon = { webapp: '🌐', mobile: '📱', saas: '☁️', extension: '🔌', desktop: '🖥️' };
+    const icon = typeIcon[(idea.app_type || '').toLowerCase()] || '💡';
     const typeClass = getIdeaTypeClass(idea.app_type);
-    const mvpHtml = (idea.mvp_features || []).slice(0, 4).map(f =>
+
+    const techPills = (idea.tech_stack || '').split(',').filter(t => t.trim()).map(t =>
+        `<span class="tech-pill">${escapeHtml(t.trim())}</span>`
+    ).join('');
+
+    const mvpHtml = (idea.mvp_features || []).map(f =>
         `<li>${escapeHtml(f)}</li>`
     ).join('');
 
+    const trafficLevel = potentialClass(idea.traffic_potential);
+    const revenueLevel = potentialClass(idea.revenue_potential);
+    const trafficPercent = trafficLevel === 'high' ? 90 : trafficLevel === 'medium' ? 55 : 25;
+    const revenuePercent = revenueLevel === 'high' ? 90 : revenueLevel === 'medium' ? 55 : 25;
+
     return `
-        <div class="idea-card">
-            <div class="idea-card-header">
-                <div class="idea-name">${escapeHtml(idea.app_name || 'Untitled')}</div>
-                <span class="idea-type-badge ${typeClass}">${escapeHtml(idea.app_type || 'App')}</span>
-            </div>
-            <div class="idea-description">${escapeHtml(idea.description || '')}</div>
-
-            <div class="idea-meta">
-                <span class="idea-meta-tag"><span class="meta-label">🎯</span> ${escapeHtml(truncate(idea.target_audience, 40))}</span>
-                <span class="idea-meta-tag"><span class="meta-label">💰</span> ${escapeHtml(truncate(idea.monetization, 40))}</span>
-                <span class="idea-meta-tag"><span class="meta-label">⚙️</span> ${escapeHtml(idea.complexity || '?')}</span>
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-                <div class="potential-bar">
-                    <span class="potential-bar-label">Traffic</span>
-                    <div class="potential-bar-track">
-                        <div class="potential-bar-fill ${potentialClass(idea.traffic_potential)}"></div>
-                    </div>
-                </div>
-                <div class="potential-bar">
-                    <span class="potential-bar-label">Revenue</span>
-                    <div class="potential-bar-track">
-                        <div class="potential-bar-fill ${potentialClass(idea.revenue_potential)}"></div>
+        <div class="idea-card-v2" onclick="this.classList.toggle('expanded')">
+            <div class="idea-card-top">
+                <div class="idea-card-icon ${typeClass}">${icon}</div>
+                <div class="idea-card-title-area">
+                    <div class="idea-name-v2">${escapeHtml(idea.app_name || 'Untitled')}</div>
+                    <div class="idea-type-row">
+                        <span class="idea-type-badge ${typeClass}">${escapeHtml(idea.app_type || 'App')}</span>
+                        <span class="idea-complexity ${(idea.complexity || '').toLowerCase()}">${escapeHtml(idea.complexity || '?')}</span>
                     </div>
                 </div>
             </div>
 
-            ${mvpHtml ? `
-                <div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600;">MVP FEATURES</div>
-                    <ul class="idea-mvp-list">${mvpHtml}</ul>
-                </div>
-            ` : ''}
+            <div class="idea-description-v2">${escapeHtml(idea.description || '')}</div>
 
-            <div class="idea-footer">
-                <span class="idea-source">
-                    <span class="platform-badge ${idea.platform}" style="font-size: 0.65rem; padding: 2px 7px;">${idea.platform}</span>
-                    ${escapeHtml(truncate(idea.post_title, 35))}
+            <div class="idea-info-grid">
+                <div class="idea-info-item">
+                    <span class="idea-info-label">🎯 Audience</span>
+                    <span class="idea-info-value">${escapeHtml(idea.target_audience || '—')}</span>
+                </div>
+                <div class="idea-info-item">
+                    <span class="idea-info-label">💰 Monetization</span>
+                    <span class="idea-info-value">${escapeHtml(idea.monetization || '—')}</span>
+                </div>
+            </div>
+
+            <div class="idea-potential-row">
+                <div class="potential-gauge">
+                    <span class="potential-label">📈 Traffic</span>
+                    <div class="potential-bar-track"><div class="potential-bar-fill ${trafficLevel}" style="width: ${trafficPercent}%"></div></div>
+                    <span class="potential-value ${trafficLevel}">${idea.traffic_potential || '—'}</span>
+                </div>
+                <div class="potential-gauge">
+                    <span class="potential-label">💵 Revenue</span>
+                    <div class="potential-bar-track"><div class="potential-bar-fill ${revenueLevel}" style="width: ${revenuePercent}%"></div></div>
+                    <span class="potential-value ${revenueLevel}">${idea.revenue_potential || '—'}</span>
+                </div>
+            </div>
+
+            <div class="idea-expandable">
+                ${techPills ? `
+                    <div class="idea-section">
+                        <div class="idea-section-label">⚙️ Tech Stack</div>
+                        <div class="tech-pills-container">${techPills}</div>
+                    </div>
+                ` : ''}
+
+                ${mvpHtml ? `
+                    <div class="idea-section">
+                        <div class="idea-section-label">🚀 MVP Features</div>
+                        <ul class="idea-mvp-list-v2">${mvpHtml}</ul>
+                    </div>
+                ` : ''}
+            </div>
+
+            <div class="idea-footer-v2">
+                <span class="idea-source-v2">
+                    <span class="platform-badge ${idea.platform}" style="font-size: 0.65rem; padding: 2px 8px;">${idea.platform}</span>
+                    <a href="${escapeHtml(idea.post_url || '#')}" target="_blank" rel="noopener" class="idea-source-link" onclick="event.stopPropagation()">
+                        ${escapeHtml(truncate(idea.post_title, 50))}
+                    </a>
                 </span>
+                <span class="expand-hint">Click to expand</span>
             </div>
         </div>
     `;
