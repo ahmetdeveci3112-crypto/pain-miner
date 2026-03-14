@@ -92,6 +92,19 @@ def create_tables():
     );
     """)
 
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS user_actions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id TEXT NOT NULL,
+        item_type TEXT NOT NULL,
+        action TEXT NOT NULL,
+        note TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(item_id, item_type, action)
+    );
+    """)
+
     # Indexes
     c.execute("CREATE INDEX IF NOT EXISTS idx_posts_platform ON posts(platform);")
     c.execute("CREATE INDEX IF NOT EXISTS idx_posts_processed_at ON posts(processed_at);")
@@ -99,6 +112,8 @@ def create_tables():
     c.execute("CREATE INDEX IF NOT EXISTS idx_posts_roi ON posts(roi_weight);")
     c.execute("CREATE INDEX IF NOT EXISTS idx_posts_source ON posts(source);")
     c.execute("CREATE INDEX IF NOT EXISTS idx_app_ideas_post ON app_ideas(post_id);")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_user_actions_item ON user_actions(item_id, item_type);")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_user_actions_action ON user_actions(action);")
 
     conn.commit()
     conn.close()

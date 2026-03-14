@@ -197,6 +197,126 @@ async def api_scrape_status():
     return _scrape_status
 
 
+# ── User Actions (fav, approve, reject, notes) ─────────────────────
+@app.get("/api/actions")
+async def api_get_actions():
+    """Get all user actions."""
+    from db.reader import _get_connection
+    conn = _get_connection()
+    try:
+        rows = conn.execute("SELECT * FROM user_actions ORDER BY updated_at DESC").fetchall()
+        return [dict(row) for row in rows]
+    except Exception:
+        return []
+
+
+@app.post("/api/actions")
+async def api_save_action(
+    item_id: str = Query(...),
+    item_type: str = Query(...),
+    action: str = Query(...),
+    note: str = Query(None),
+):
+    """Save a user action (favorite, approve, reject, note)."""
+    from db.reader import _get_connection
+    conn = _get_connection()
+    try:
+        conn.execute("""
+            INSERT INTO user_actions (item_id, item_type, action, note, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(item_id, item_type, action)
+            DO UPDATE SET note = excluded.note, updated_at = datetime('now')
+        """, (item_id, item_type, action, note))
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.delete("/api/actions")
+async def api_delete_action(
+    item_id: str = Query(...),
+    item_type: str = Query(...),
+    action: str = Query(...),
+):
+    """Remove a user action."""
+    from db.reader import _get_connection
+    conn = _get_connection()
+    try:
+        conn.execute(
+            "DELETE FROM user_actions WHERE item_id = ? AND item_type = ? AND action = ?",
+            (item_id, item_type, action),
+        )
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# ── Tags ────────────────────────────────────────────────────────────
+@app.get("/api/tags")
+async def api_tags():
+    """Get all unique tags from posts."""
+    from db.reader import _get_connection
+    conn = _get_connection()
+    try:
+        rows = conn.execute("SELECT tags FROM posts WHERE tags IS NOT NULL AND tags != ''").fetchall()
+        tag_counts = {}
+        for row in rows:
+            for tag in row["tags"].split(","):
+                t = tag.strip()
+                if t:
+                    tag_counts[t] = tag_counts.get(t, 0) + 1
+        sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)
+        return [{"tag": t, "count": c} for t, c in sorted_tags]
+    except Exception:
+        return []
+
+
+# ── Export ──────────────────────────────────────────────────────────
+@app.get("/api/export")
+async def api_export(format: str = Query("json")):
+    """Export approved ideas as JSON or CSV."""
+    from db.reader import _get_connection
+    conn = _get_connection()
+    try:
+        # Get approved idea IDs
+        approved_rows = conn.execute(
+            "SELECT item_id FROM user_actions WHERE item_type = 'idea' AND action = 'approve'"
+        ).fetchall()
+        approved_ids = [str(r["item_id"]) for r in approved_rows]
+
+        if not approved_ids:
+            ideas_rows = conn.execute("SELECT * FROM app_ideas ORDER BY id DESC").fetchall()
+        else:
+            placeholders = ",".join("?" * len(approved_ids))
+            ideas_rows = conn.execute(
+                f"SELECT * FROM app_ideas WHERE id IN ({placeholders}) ORDER BY id DESC",
+                approved_ids,
+            ).fetchall()
+
+        ideas = [dict(r) for r in ideas_rows]
+
+        if format == "csv":
+            import csv
+            import io
+            output = io.StringIO()
+            if ideas:
+                writer = csv.DictWriter(output, fieldnames=ideas[0].keys())
+                writer.writeheader()
+                writer.writerows(ideas)
+            from starlette.responses import Response
+            return Response(
+                content=output.getvalue(),
+                media_type="text/csv",
+                headers={"Content-Disposition": "attachment; filename=pain_miner_export.csv"},
+            )
+
+        return ideas
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 # ── Static frontend ────────────────────────────────────────────────
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 
