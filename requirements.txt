@@ -3,12 +3,9 @@
 # AI
 google-genai>=1.0.0
 
-# Web scraping (Reddit JSON, Product Hunt, HN)
+# Web scraping (Reddit RSS, Product Hunt Atom, HN API, Twitter API)
 requests>=2.31.0
 beautifulsoup4>=4.12.0
-
-# Twitter/X scraping (no API key needed)
-twikit>=2.0.0
 
 # Configuration
 pyyaml>=6.0
