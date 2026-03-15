@@ -113,7 +113,7 @@ database:
 # Scheduler — auto scrape every N hours
 scheduler:
   enabled: true
-  interval_hours: 1
+  interval_hours: 3
 
 # Logging
 log_level: INFO
