@@ -49,10 +49,10 @@ platforms:
       - "any good tool for"
 
   indiehackers:
-    enabled: true
+    enabled: false  # ihrss.io RSS service down, IH native site is JS-rendered
 
   quora:
-    enabled: true
+    enabled: false  # Returns 403 on all topic RSS feeds from datacenter IPs
     topics:
       - SaaS
       - Startups
@@ -64,7 +64,7 @@ platforms:
       - Freelancing
 
   g2:
-    enabled: true
+    enabled: false  # Cloudflare blocks all requests from datacenter IPs
     categories:
       - project-management
       - crm
