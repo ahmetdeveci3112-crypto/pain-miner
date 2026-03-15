@@ -249,7 +249,7 @@ function renderProblemCard(p, index) {
     const note = getNote(p.id, 'problem');
 
     return `
-        <div class="problem-card glass-card" data-tags="${escapeHtml(p.tags || '')}" onclick="this.classList.toggle('expanded')">
+        <div class="problem-card glass-card" data-tags="${escapeHtml(p.tags || '')}" data-platform="${p.platform || ''}" onclick="this.classList.toggle('expanded')">
             <div class="problem-card-main">
                 <div class="problem-rank">${index + 1}</div>
                 <div class="problem-content">
@@ -264,6 +264,7 @@ function renderProblemCard(p, index) {
                             <span class="card-timestamp">🕐 ${formatDate(p.processed_at)}</span>
                         </div>
                     </div>
+                    ${p.pain_point ? `<div class="problem-description">${escapeHtml(p.pain_point)}</div>` : ''}
                     <div class="problem-scores">
                         <div class="score-pill"><span class="score-label">ROI</span><div class="score-bar-track"><div class="score-bar-fill purple" style="width:${roiPercent}%"></div></div><span class="score-value">${p.roi_weight || 0}</span></div>
                         <div class="score-pill"><span class="score-label">Acı</span><span class="score-badge ${scoreClass(p.pain_score, 7, 5)}">${p.pain_score ? p.pain_score.toFixed(1) : '—'}</span></div>
@@ -276,7 +277,6 @@ function renderProblemCard(p, index) {
                 <div class="expand-icon">▾</div>
             </div>
             <div class="problem-details">
-                ${p.pain_point ? `<div class="detail-section"><div class="detail-label">🎯 Acı Noktası</div><div class="detail-text">${escapeHtml(p.pain_point)}</div></div>` : ''}
                 ${p.product_opportunity ? `<div class="detail-section"><div class="detail-label">💡 Ürün Fırsatı</div><div class="detail-text">${escapeHtml(p.product_opportunity)}</div></div>` : ''}
                 <div class="note-section">
                     <div class="detail-label">📝 Not</div>
@@ -342,6 +342,15 @@ async function renderIdeas(container) {
                     <span class="filter-tag" data-status="pending">⏳ Bekleyen</span>
                 </div>
             </div>
+            <div class="filter-bar" id="ideaPlatformFilters">
+                <div class="filter-label">🌐 Platform:</div>
+                <div class="filter-tags" id="ideaPlatformFilter">
+                    <span class="filter-tag active" data-platform="">Tümü</span>
+                    <span class="filter-tag" data-platform="reddit"><span class="platform-badge reddit" style="font-size:0.65rem;padding:2px 6px;">◉ Reddit</span></span>
+                    <span class="filter-tag" data-platform="hackernews"><span class="platform-badge hackernews" style="font-size:0.65rem;padding:2px 6px;">▲ HN</span></span>
+                    <span class="filter-tag" data-platform="producthunt"><span class="platform-badge producthunt" style="font-size:0.65rem;padding:2px 6px;">🚀 PH</span></span>
+                </div>
+            </div>
             <div class="ideas-grid-v2" id="ideasGrid">
                 ${(ideas || []).length > 0
                     ? ideas.map(idea => renderIdeaCard(idea)).join('')
@@ -351,25 +360,43 @@ async function renderIdeas(container) {
         </div>
     `;
 
+    function applyIdeaFilters() {
+        const activeStatus = document.querySelector('#ideaStatusFilter .filter-tag.active');
+        const activePlatform = document.querySelector('#ideaPlatformFilter .filter-tag.active');
+        const status = activeStatus ? activeStatus.dataset.status : '';
+        const platform = activePlatform ? activePlatform.dataset.platform : '';
+        const cards = document.querySelectorAll('.idea-card-v2');
+        cards.forEach(card => {
+            const id = card.dataset.id;
+            const cardPlatform = card.dataset.platform || '';
+            const isApproved = hasAction(id, 'idea', 'approve');
+            const isRejected = hasAction(id, 'idea', 'reject');
+            const isFav = hasAction(id, 'idea', 'favorite');
+            let showStatus = true;
+            if (status === 'approved') showStatus = isApproved;
+            else if (status === 'rejected') showStatus = isRejected;
+            else if (status === 'favorite') showStatus = isFav;
+            else if (status === 'pending') showStatus = !isApproved && !isRejected;
+            let showPlatform = !platform || cardPlatform === platform;
+            card.style.display = (showStatus && showPlatform) ? '' : 'none';
+        });
+    }
+
     // Status filter
     document.querySelectorAll('#ideaStatusFilter .filter-tag').forEach(tag => {
         tag.addEventListener('click', () => {
             document.querySelectorAll('#ideaStatusFilter .filter-tag').forEach(t => t.classList.remove('active'));
             tag.classList.add('active');
-            const status = tag.dataset.status;
-            const cards = document.querySelectorAll('.idea-card-v2');
-            cards.forEach(card => {
-                const id = card.dataset.id;
-                const isApproved = hasAction(id, 'idea', 'approve');
-                const isRejected = hasAction(id, 'idea', 'reject');
-                const isFav = hasAction(id, 'idea', 'favorite');
-                let show = true;
-                if (status === 'approved') show = isApproved;
-                else if (status === 'rejected') show = isRejected;
-                else if (status === 'favorite') show = isFav;
-                else if (status === 'pending') show = !isApproved && !isRejected;
-                card.style.display = show ? '' : 'none';
-            });
+            applyIdeaFilters();
+        });
+    });
+
+    // Platform filter
+    document.querySelectorAll('#ideaPlatformFilter .filter-tag').forEach(tag => {
+        tag.addEventListener('click', () => {
+            document.querySelectorAll('#ideaPlatformFilter .filter-tag').forEach(t => t.classList.remove('active'));
+            tag.classList.add('active');
+            applyIdeaFilters();
         });
     });
 }
@@ -392,7 +419,7 @@ function renderIdeaCard(idea) {
     const statusClass = isApproved ? 'card-approved' : isRejected ? 'card-rejected' : '';
 
     return `
-        <div class="idea-card-v2 ${statusClass}" data-id="${idea.id}" onclick="this.classList.toggle('expanded')">
+        <div class="idea-card-v2 ${statusClass}" data-id="${idea.id}" data-platform="${idea.platform || ''}" onclick="this.classList.toggle('expanded')">
             <div class="idea-card-top">
                 <div class="idea-card-icon ${typeClass}">${icon}</div>
                 <div class="idea-card-title-area">

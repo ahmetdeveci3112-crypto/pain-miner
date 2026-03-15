@@ -893,6 +893,18 @@ table { border-collapse: collapse; width: 100%; }
     to { transform: rotate(360deg); }
 }
 
+/* ── Problem Description (visible pain point) ─────────────────── */
+.problem-description {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    padding: 8px 12px;
+    margin: 6px 0 4px 0;
+    background: rgba(168, 85, 247, 0.06);
+    border-left: 3px solid var(--purple);
+    border-radius: 4px;
+}
+
 /* ── Tags ──────────────────────────────────────────────────────── */
 .tags-container {
     display: flex;
@@ -1533,14 +1545,14 @@ table { border-collapse: collapse; width: 100%; }
 /* ── Filter Bar ───────────────────────────────────────────────── */
 .filter-bar {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
     padding: 14px 18px;
     background: var(--bg-card);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
     margin-bottom: 16px;
-    overflow-x: auto;
+    flex-wrap: wrap;
 }
 
 .filter-label {
@@ -1554,7 +1566,7 @@ table { border-collapse: collapse; width: 100%; }
 .filter-tags {
     display: flex;
     gap: 6px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
 }
 
 .filter-tag {
