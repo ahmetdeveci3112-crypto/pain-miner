@@ -38,6 +38,41 @@ platforms:
     enabled: true
     days_back: 7     # Scrape posts from last N days
 
+  github:
+    enabled: true
+    search_queries:
+      - "looking for tool"
+      - "wish there was"
+      - "frustrated with"
+      - "need a better way"
+      - "alternative to"
+      - "any good tool for"
+
+  indiehackers:
+    enabled: true
+
+  quora:
+    enabled: true
+    topics:
+      - SaaS
+      - Startups
+      - Software-Development
+      - Productivity-Tools
+      - Web-Applications
+      - Entrepreneurship
+      - Small-Business
+      - Freelancing
+
+  g2:
+    enabled: true
+    categories:
+      - project-management
+      - crm
+      - marketing-automation
+      - accounting
+      - help-desk
+      - email-marketing
+
 # Scraping settings
 scraper:
   min_post_age_days: 0

@@ -550,6 +550,38 @@ table { border-collapse: collapse; width: 100%; }
     border-left: 3px solid #da552f;
 }
 
+/* GitHub — blue-purple */
+.platform-badge.github {
+    background: linear-gradient(135deg, rgba(110, 84, 200, 0.15), rgba(110, 84, 200, 0.06));
+    color: #8b6fdb;
+    border: 1px solid rgba(110, 84, 200, 0.25);
+    border-left: 3px solid #6e54c8;
+}
+
+/* Indie Hackers — teal/cyan */
+.platform-badge.indiehackers {
+    background: linear-gradient(135deg, rgba(26, 163, 163, 0.15), rgba(26, 163, 163, 0.06));
+    color: #1cc8c8;
+    border: 1px solid rgba(26, 163, 163, 0.25);
+    border-left: 3px solid #1aa3a3;
+}
+
+/* Quora — deep red/wine */
+.platform-badge.quora {
+    background: linear-gradient(135deg, rgba(185, 43, 39, 0.15), rgba(185, 43, 39, 0.06));
+    color: #d44040;
+    border: 1px solid rgba(185, 43, 39, 0.25);
+    border-left: 3px solid #b92b27;
+}
+
+/* G2 — forest green */
+.platform-badge.g2 {
+    background: linear-gradient(135deg, rgba(255, 144, 35, 0.15), rgba(255, 144, 35, 0.06));
+    color: #ff9023;
+    border: 1px solid rgba(255, 144, 35, 0.25);
+    border-left: 3px solid #ff6a00;
+}
+
 /* ── Score / ROI Badges ────────────────────────────────────────── */
 .score-badge {
     display: inline-flex;

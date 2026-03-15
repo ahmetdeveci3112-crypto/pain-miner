@@ -349,6 +349,10 @@ async function renderIdeas(container) {
                     <span class="filter-tag" data-platform="reddit"><span class="platform-badge reddit" style="font-size:0.65rem;padding:2px 6px;">◉ Reddit</span></span>
                     <span class="filter-tag" data-platform="hackernews"><span class="platform-badge hackernews" style="font-size:0.65rem;padding:2px 6px;">▲ HN</span></span>
                     <span class="filter-tag" data-platform="producthunt"><span class="platform-badge producthunt" style="font-size:0.65rem;padding:2px 6px;">🚀 PH</span></span>
+                    <span class="filter-tag" data-platform="github"><span class="platform-badge github" style="font-size:0.65rem;padding:2px 6px;">⬡ GitHub</span></span>
+                    <span class="filter-tag" data-platform="indiehackers"><span class="platform-badge indiehackers" style="font-size:0.65rem;padding:2px 6px;">🔥 IH</span></span>
+                    <span class="filter-tag" data-platform="quora"><span class="platform-badge quora" style="font-size:0.65rem;padding:2px 6px;">Q Quora</span></span>
+                    <span class="filter-tag" data-platform="g2"><span class="platform-badge g2" style="font-size:0.65rem;padding:2px 6px;">★ G2</span></span>
                 </div>
             </div>
             <div class="ideas-grid-v2" id="ideasGrid">
@@ -740,7 +744,7 @@ function formatDate(dateStr) {
     } catch { return dateStr; }
 }
 
-function platformIcon(platform) { return { reddit: '◉', hackernews: '▲', producthunt: '🚀' }[platform] || '●'; }
+function platformIcon(platform) { return { reddit: '◉', hackernews: '▲', producthunt: '🚀', github: '⬡', indiehackers: '🔥', quora: 'Q', g2: '★' }[platform] || '●'; }
 function scoreClass(val, h, m) { if (val == null) return 'low'; if (val >= h) return 'high'; if (val >= m) return 'medium'; return 'low'; }
 function potentialClass(level) { if (!level) return 'low'; const l = level.toLowerCase(); if (l.includes('high') || l.includes('yüksek')) return 'high'; if (l.includes('medium') || l.includes('orta')) return 'medium'; return 'low'; }
 function getIdeaTypeClass(type) { if (!type) return 'default'; const t = type.toLowerCase(); if (t.includes('web')) return 'web'; if (t.includes('mobile')) return 'mobile'; if (t.includes('saas')) return 'saas'; if (t.includes('extension') || t.includes('plugin')) return 'extension'; return 'default'; }
