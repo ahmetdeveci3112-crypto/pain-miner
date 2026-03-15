@@ -1,43 +1,50 @@
-Bir çevrimiçi forumdan gelen bir gönderi veya yorum verildiğinde, bunun gerçek bir pazar acı noktası içerip içermediğine karar ver — yeni bir dijital ürün veya hizmet (web uygulaması, mobil uygulama, SaaS, API, platform, tarayıcı eklentisi vb.) ile çözülebilecek gerçek bir problem.
+Bir çevrimiçi forumdan gelen bir gönderi veya yorum verildiğinde, bunun bir pazar acı noktası içerip içermediğine karar ver — yeni bir dijital ürünle (web uygulaması, mobil uygulama, SaaS, API, tarayıcı eklentisi, otomasyon aracı vb.) çözülebilecek bir problem.
 
-Sadece yazılım ve dijital hizmetlerle çözülebilecek problemlere odaklan. Donanım, fiziksel ürün veya üretim gerektiren acı noktalarını yoksay.
+Sadece yazılım ve dijital hizmetlerle çözülebilecek problemlere odaklan. Donanım veya fiziksel ürün gerektiren sorunları yoksay.
 
-Bu bir YORUM ise, üst gönderi bağlamında değerlendir. Yorum, gönderide açıklanan sorunlara atıfta bulunuyor veya detaylandırıyor olabilir.
+Bu bir YORUM ise, üst gönderi bağlamında değerlendir.
+
+⚠️ ÖNEMLİ: Küçük ama somut problemleri de yakala! Hedef sadece büyük pazar fırsatları değil, aynı zamanda:
+- Basit bir web app ile 1-2 haftada çözülebilecek günlük sıkıntılar
+- Niş ama tutkulu bir kitlenin yaşadığı tekrar eden problemler
+- "Keşke şöyle bir şey olsa" tarzı küçük dilekler (bunlar gerçek fırsat olabilir!)
+- Manuel yapılan, otomatize edilebilecek küçük işler
+- Mevcut büyük araçların karmaşık olduğu durumlar (basit alternatif fırsatı)
 
 Analiz et:
-- Kullanıcı gerçek, tekrar eden bir problem mi tanımlıyor (sadece şikayet etmek veya tek seferlik soru sormak değil)?
-- Bu acı noktası binlerce veya milyonlarca kişiyi etkileyebilir mi?
-- Mevcut yazılım/dijital çözümler eksik, yetersiz veya çok pahalı mı?
-- Kullanıcı çözümler için ödeme yapmaktan, geçiş maliyetlerinden, bütçelerden veya başarısız alternatiflerden bahsediyor mu?
-- Kullanıcı geçici çözümler, zaman/para israfı veya çözüm bulamama durumunu tanımlıyor mu?
-- Solo bir geliştirici veya küçük bir ekip AI araçlarıyla (vibe-coding) gerçekçi bir MVP oluşturabilir mi?
-- Bunu kimler kullanır — işletmeler (B2B) mi yoksa tüketiciler (B2C) mi?
+- Kullanıcı bir problem mi tanımlıyor? (büyük veya küçük, tekrar eden veya tek seferlik fark etmez)
+- Bu problemi basit bir dijital araçla çözmek mümkün mü?
+- Mevcut çözümler eksik, karmaşık veya çok pahalı mi?
+- Kullanıcı zaman/para israfı, manuel iş, veya çözüm arayışından bahsediyor mu?
+- Solo bir geliştirici AI araçlarıyla gerçekçi bir MVP oluşturabilir mi?
 
 Öncelik ver:
-- Web uygulaması veya mobil uygulama ile çözülebilecek problemler
-- Solo geliştiricinin AI kodlama araçlarıyla hızla MVP oluşturabileceği fikirler
-- Trafik çekebilecek (SEO dostu, viral potansiyel) VEYA gelir üretebilecek (abonelik, freemium) ürünler
-- Geniş kitleleri etkileyen evrensel problemler
+- Basit web uygulaması veya tarayıcı eklentisi ile çözülebilecek problemler
+- Solo geliştiricinin AI kodlama araçlarıyla hızla (1-4 hafta) MVP yapabileceği fikirler
+- Küçük ama gerçek acısı olan niş kitleler (100-10.000 kişi bile olsa)
+- Manuel işlerin otomasyonu
+- Mevcut karmaşık araçlara basit alternatif fırsatları
 
-Önceliklendirme:
-- Gerçek acı kanıtı olmayan belirsiz "olsa güzel olurdu" dilekleri düşük puan al
-- Sadece çok küçük, ultra-spesifik bir kitleyi etkileyen problemler düşük puan al
-- Derin alan uzmanlığı veya düzenleyici onay gerektiren acı noktaları düşük puan al
+Düşük puan alanlar:
+- Hiçbir somut problem içermeyen genel sohbetler
+- Sadece haber veya duyuru niteliğinde (problem yok)
+- Derin alan uzmanlığı veya düzenleyici onay gerektiren konular
+- Donanım / fiziksel üretim gerektiren sorunlar
 
 Çıktın şunları içermelidir:
-- `relevance_score` (0-10): Kullanıcının gerçek, tekrar eden bir problemi ne kadar net tanımladığı
-- `emotional_intensity` (0-10): Bu problem ne kadar yaygın? Pazar genişliği
-- `pain_point_clarity` (0-10): Mevcut çözümler eksik veya yetersiz mi?
-- `implementability_score` (0-10): Solo bir geliştirici bunu AI araçlarıyla yapabilir mi?
-- `technical_depth_score` (0-10): Gerçek mühendislik gerektirir mi yoksa basit mi?
+- `relevance_score` (0-10): Bir problem tanımlanmış mı? (küçük problemler de 4-6 puan alabilir)
+- `emotional_intensity` (0-10): Problem ne kadar acı veriyor? (günlük küçük sıkıntılar 3-5 alabilir)
+- `pain_point_clarity` (0-10): Problem ve çözüm boşluğu ne kadar net?
+- `implementability_score` (0-10): Solo dev bunu ne kadar kolay yapabilir? (basit = yüksek puan)
+- `technical_depth_score` (0-10): Teknik karmaşıklık düzeyi (basit araçlar yüksek, karmaşık sistemler düşük)
 - `summary`: Acı noktasının 1 cümlelik Türkçe özeti
 
 Şu formatta bir JSON nesnesi ile yanıt ver:
 {
-  "relevance_score": 8,
-  "emotional_intensity": 7,
-  "pain_point_clarity": 9,
-  "implementability_score": 8,
-  "technical_depth_score": 5,
-  "summary": "Küçük işletme sahipleri, pahalı kurumsal yazılım satın almadan faturalandırmayı otomatikleştirmekte zorlanıyor."
+  "relevance_score": 6,
+  "emotional_intensity": 4,
+  "pain_point_clarity": 7,
+  "implementability_score": 9,
+  "technical_depth_score": 3,
+  "summary": "Küçük işletme sahipleri müşteri randevularını takip etmek için basit bir araç arıyor."
 }

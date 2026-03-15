@@ -102,7 +102,7 @@ scoring:
   implementability_weight: 0.15
   technical_depth_weight: 0.20
   recent_activity_weight: 0.10
-  min_score_threshold: 5.0
+  min_score_threshold: 3.5
   output_top_n: 20
 
 # Database settings
