@@ -48,30 +48,13 @@ platforms:
       - "alternative to"
       - "any good tool for"
 
-  indiehackers:
-    enabled: false  # ihrss.io RSS service down, IH native site is JS-rendered
+  technopat:
+    enabled: true
+    # Technopat Forum — Türkiye'nin en büyük teknoloji forumu
 
-  quora:
-    enabled: false  # Returns 403 on all topic RSS feeds from datacenter IPs
-    topics:
-      - SaaS
-      - Startups
-      - Software-Development
-      - Productivity-Tools
-      - Web-Applications
-      - Entrepreneurship
-      - Small-Business
-      - Freelancing
-
-  g2:
-    enabled: false  # Cloudflare blocks all requests from datacenter IPs
-    categories:
-      - project-management
-      - crm
-      - marketing-automation
-      - accounting
-      - help-desk
-      - email-marketing
+  webrazzi:
+    enabled: true
+    # Webrazzi + ShiftDelete + Donanım Haber — Türk teknoloji haberleri
 
 # Scraping settings
 scraper:

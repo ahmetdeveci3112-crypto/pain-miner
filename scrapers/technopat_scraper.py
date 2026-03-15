@@ -1,11 +1,11 @@
-# scrapers/quora_scraper.py — Quora scraper via topic RSS feeds
+# scrapers/technopat_scraper.py — Technopat Forum scraper via RSS feeds
 
 import requests
 import time
 import random
 import re
-import xml.etree.ElementTree as ET
 import hashlib
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from html import unescape
 
@@ -15,32 +15,23 @@ from db.reader import is_already_processed
 
 log = setup_logger()
 
-# Quora supports RSS feeds by appending /rss to topic URLs
-QUORA_TOPIC_RSS = "https://www.quora.com/topic/{topic}/rss"
+# Technopat Forum RSS — each section has an RSS feed at /index.rss
+TECHNOPAT_SECTIONS = {
+    # Yazılım & Teknoloji sorunları — pain point kaynağı
+    "yazilim-sorunlari": "https://www.technopat.net/sosyal/bolum/yazilim-ve-donanim-sorunlari.pair-teknoloji.56/index.rss",
+    "mobil-sorunlar": "https://www.technopat.net/sosyal/bolum/mobil-cihaz-sorunlari.pair-sosyal.101/index.rss",
+    "internet-sorunlari": "https://www.technopat.net/sosyal/bolum/internet-network.pair-teknoloji.94/index.rss",
+    "uygulama-onerileri": "https://www.technopat.net/sosyal/bolum/yazilim-uygulamalar.pair-teknoloji.64/index.rss",
+    "proje-gelistirme": "https://www.technopat.net/sosyal/bolum/web-yazilim-gelistirme.pair-teknoloji.30/index.rss",
+}
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0",
-]
-
-# Default topics related to pain points & software needs
-DEFAULT_TOPICS = [
-    "SaaS",
-    "Startups",
-    "Software-Development",
-    "Productivity-Tools",
-    "Web-Applications",
-    "Entrepreneurship",
-    "Small-Business",
-    "Project-Management",
-    "Automation",
-    "Freelancing",
 ]
 
 
 def _strip_html(html_text):
-    """Remove HTML tags and decode entities."""
     if not html_text:
         return ""
     clean = re.sub(r"<[^>]+>", " ", html_text)
@@ -48,12 +39,11 @@ def _strip_html(html_text):
     return " ".join(clean.split()).strip()
 
 
-def _parse_rss(feed_text, topic) -> list:
-    """Parse Quora RSS feed."""
+def _parse_rss(feed_text) -> list:
     try:
         root = ET.fromstring(feed_text)
     except ET.ParseError as e:
-        log.error(f"Quora RSS parse error for {topic}: {e}")
+        log.error(f"Technopat RSS parse error: {e}")
         return []
 
     entries = []
@@ -64,49 +54,41 @@ def _parse_rss(feed_text, topic) -> list:
     for item in channel.findall("item"):
         title = (item.findtext("title") or "").strip()
         link = (item.findtext("link") or "").strip()
-        desc = _strip_html(item.findtext("description") or "")
+        desc = _strip_html(item.findtext("{http://purl.org/rss/1.0/modules/content/}encoded") or item.findtext("description") or "")
         pub_date = (item.findtext("pubDate") or "").strip()
         guid = (item.findtext("guid") or link).strip()
 
-        if title:
+        if title and len(title) > 5:
             entries.append({
-                "title": title,
-                "url": link,
-                "body": desc,
-                "pub_date": pub_date,
-                "guid": guid,
+                "title": title, "url": link, "body": desc,
+                "pub_date": pub_date, "guid": guid,
             })
 
     return entries
 
 
-def scrape_quora() -> list:
-    """Scrape Quora topic RSS feeds for pain points."""
+def scrape_technopat() -> list:
     config = get_config()
-    platform_config = config["platforms"].get("quora", {})
+    platform_config = config["platforms"].get("technopat", {})
 
     if not platform_config.get("enabled", False):
-        log.info("Quora scraping disabled")
+        log.info("Technopat scraping disabled")
         return []
 
     max_items = config["scraper"]["max_items_per_platform"]
-    topics = platform_config.get("topics", DEFAULT_TOPICS)
-
     all_posts = []
     seen_ids = set()
 
-    log.info(f"Quora: Fetching RSS for {len(topics)} topics...")
+    log.info(f"Technopat: Fetching {len(TECHNOPAT_SECTIONS)} forum sections...")
 
-    for i, topic in enumerate(topics):
+    for i, (section_name, url) in enumerate(TECHNOPAT_SECTIONS.items()):
         if len(all_posts) >= max_items:
             break
 
-        url = QUORA_TOPIC_RSS.format(topic=topic)
-        log.info(f"  Quora topic ({i+1}/{len(topics)}): {topic}")
+        log.info(f"  Technopat ({i+1}/{len(TECHNOPAT_SECTIONS)}): {section_name}")
 
-        # Rate limit: 5-8s between requests
         if i > 0:
-            time.sleep(5 + random.uniform(1.0, 3.0))
+            time.sleep(3 + random.uniform(0.5, 1.5))
 
         try:
             resp = requests.get(url, headers={
@@ -115,34 +97,26 @@ def scrape_quora() -> list:
             }, timeout=15)
 
             if resp.status_code != 200:
-                log.warning(f"Quora RSS returned {resp.status_code} for {topic}")
+                log.warning(f"Technopat RSS returned {resp.status_code} for {section_name}")
                 continue
 
-            entries = _parse_rss(resp.text, topic)
-            log.info(f"    {len(entries)} entries found")
+            entries = _parse_rss(resp.text)
+            log.info(f"    {len(entries)} entries")
 
             for entry in entries:
                 if len(all_posts) >= max_items:
                     break
 
-                guid = entry.get("guid", "")
-                q_hash = hashlib.md5(guid.encode()).hexdigest()[:12]
-                post_id = f"quora_{q_hash}"
+                tp_hash = hashlib.md5(entry["guid"].encode()).hexdigest()[:12]
+                post_id = f"technopat_{tp_hash}"
 
-                if q_hash in seen_ids:
+                if tp_hash in seen_ids or is_already_processed(post_id):
                     continue
-                seen_ids.add(q_hash)
+                seen_ids.add(tp_hash)
 
-                if is_already_processed(post_id):
-                    continue
-
-                title = entry.get("title", "").strip()
+                title = entry["title"]
                 body = entry.get("body", "")
 
-                if not title or len(title) < 5:
-                    continue
-
-                # Parse pub date
                 try:
                     from email.utils import parsedate_to_datetime
                     created_utc = parsedate_to_datetime(entry["pub_date"]).timestamp()
@@ -151,17 +125,17 @@ def scrape_quora() -> list:
 
                 all_posts.append({
                     "id": post_id,
-                    "platform": "quora",
+                    "platform": "technopat",
                     "title": title,
                     "body": body if body and len(body) > 10 else title,
                     "created_utc": created_utc,
-                    "source": topic,
-                    "url": entry.get("url", ""),
-                    "type": "question",
+                    "source": section_name,
+                    "url": entry["url"],
+                    "type": "post",
                 })
 
         except Exception as e:
-            log.error(f"Quora scraping error for {topic}: {e}")
+            log.error(f"Technopat error for {section_name}: {e}")
 
-    log.info(f"Quora: Total {len(all_posts)} items scraped")
+    log.info(f"Technopat: Total {len(all_posts)} items scraped")
     return all_posts[:max_items]

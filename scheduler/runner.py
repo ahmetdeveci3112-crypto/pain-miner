@@ -16,9 +16,8 @@ from scrapers.reddit_scraper import scrape_reddit
 from scrapers.hackernews_scraper import scrape_hackernews
 from scrapers.producthunt_scraper import scrape_producthunt
 from scrapers.github_scraper import scrape_github
-from scrapers.indiehackers_scraper import scrape_indiehackers
-from scrapers.quora_scraper import scrape_quora
-from scrapers.g2_scraper import scrape_g2
+from scrapers.technopat_scraper import scrape_technopat
+from scrapers.webrazzi_scraper import scrape_webrazzi
 from analysis.gemini_client import analyze_with_gemini
 from analysis.filters import build_filter_prompt, calculate_weighted_score
 from analysis.insights import build_insight_prompt, build_app_idea_prompt
@@ -93,7 +92,7 @@ def run_pipeline(platforms: list[str] = None, limit: int = None,
     # Determine which platforms to scrape
     if platforms is None:
         platforms = []
-        for pname in ["reddit", "hackernews", "producthunt", "github", "indiehackers", "quora", "g2"]:
+        for pname in ["reddit", "hackernews", "producthunt", "github", "technopat", "webrazzi"]:
             if config["platforms"].get(pname, {}).get("enabled", False):
                 platforms.append(pname)
 
@@ -117,12 +116,10 @@ def run_pipeline(platforms: list[str] = None, limit: int = None,
                 posts = scrape_producthunt()
             elif platform == "github":
                 posts = scrape_github()
-            elif platform == "indiehackers":
-                posts = scrape_indiehackers()
-            elif platform == "quora":
-                posts = scrape_quora()
-            elif platform == "g2":
-                posts = scrape_g2()
+            elif platform == "technopat":
+                posts = scrape_technopat()
+            elif platform == "webrazzi":
+                posts = scrape_webrazzi()
             else:
                 log.warning(f"Unknown platform: {platform}")
                 continue
