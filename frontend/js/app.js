@@ -205,13 +205,14 @@ async function renderProblems(container) {
 
     const approvedCount = userActions.filter(a => a.item_type === 'problem' && a.action === 'approve').length;
     const rejectedCount = userActions.filter(a => a.item_type === 'problem' && a.action === 'reject').length;
+    const favCount = userActions.filter(a => a.item_type === 'problem' && a.action === 'favorite').length;
 
     container.innerHTML = `
         <div class="fade-in">
             <div class="section-header" style="margin-bottom: 16px;">
                 <div>
                     <div class="section-title">Keşfedilen Problemler</div>
-                    <div class="section-subtitle">${(problems || []).length} problem — ✅ ${approvedCount} onaylı · ❌ ${rejectedCount} reddedildi</div>
+                    <div class="section-subtitle">${(problems || []).length} problem — ⭐ ${favCount} favori · ✅ ${approvedCount} onaylı · ❌ ${rejectedCount} reddedildi</div>
                 </div>
             </div>
             <div class="filter-bar" id="problemStatusFilter">
@@ -399,13 +400,14 @@ async function renderIdeas(container) {
 
     const approvedCount = userActions.filter(a => a.item_type === 'idea' && a.action === 'approve').length;
     const rejectedCount = userActions.filter(a => a.item_type === 'idea' && a.action === 'reject').length;
+    const favCount = userActions.filter(a => a.item_type === 'idea' && a.action === 'favorite').length;
 
     container.innerHTML = `
         <div class="fade-in">
             <div class="section-header" style="margin-bottom: 16px;">
                 <div>
                     <div class="section-title">Tüm Uygulama Fikirleri</div>
-                    <div class="section-subtitle">${(ideas || []).length} AI üretimi konsept — ✅ ${approvedCount} onaylı · ❌ ${rejectedCount} reddedildi</div>
+                    <div class="section-subtitle">${(ideas || []).length} AI üretimi konsept — ⭐ ${favCount} favori · ✅ ${approvedCount} onaylı · ❌ ${rejectedCount} reddedildi</div>
                 </div>
                 <div class="section-actions">
                     <button class="btn btn-secondary btn-sm" onclick="exportIdeas('json')">📤 JSON Dışa Aktar</button>
