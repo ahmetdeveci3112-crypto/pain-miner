@@ -147,7 +147,7 @@ async def api_problems(
 
 @app.get("/api/ideas")
 async def api_ideas(
-    limit: int = Query(500, ge=1, le=1000),
+    limit: int = Query(5000, ge=1, le=5000),
 ):
     """Generated app ideas."""
     ideas = get_app_ideas(limit=limit)

@@ -200,6 +200,7 @@ async function renderProblems(container) {
     ]);
     await loadUserActions();
     allTags = tags || [];
+    window._allProblems = problems || [];
     problemsShown = problemsPageSize;
 
     const approvedCount = userActions.filter(a => a.item_type === 'problem' && a.action === 'approve').length;
@@ -230,26 +231,18 @@ async function renderProblems(container) {
                     ${allTags.slice(0, 15).map(t => `<span class="filter-tag" data-tag="${escapeHtml(t.tag)}">${escapeHtml(t.tag)} <small>(${t.count})</small></span>`).join('')}
                 </div>
             </div>
-            <div class="problems-list" id="problemsList">
-                ${renderProblemCards((problems || []).slice(0, problemsShown))}
-            </div>
-            ${(problems || []).length > problemsShown ? `
-            <div style="text-align:center;margin-top:20px;" id="loadMoreProblemsWrap">
-                <button class="btn btn-secondary" id="loadMoreProblems" onclick="loadMoreProblems()">Daha Fazla Göster (${(problems || []).length - problemsShown} kalan)</button>
-            </div>` : ''}
+            <div class="problems-list" id="problemsList"></div>
+            <div style="text-align:center;margin-top:20px;" id="loadMoreProblemsWrap"></div>
         </div>
     `;
 
-    window._allProblems = problems || [];
-
-    function applyProblemFilters() {
+    function getFilteredProblems() {
         const activeStatus = document.querySelector('#problemStatusFilter .filter-tag.active');
         const activeTag = document.querySelector('#problemTagFilter .filter-tag.active');
         const status = activeStatus ? activeStatus.dataset.status : '';
         const tag = activeTag ? activeTag.dataset.tag : '';
-        const cards = document.querySelectorAll('.problem-card');
-        cards.forEach(card => {
-            const id = card.dataset.id || '';
+        return window._allProblems.filter(p => {
+            const id = String(p.id);
             const isApproved = hasAction(id, 'problem', 'approve');
             const isRejected = hasAction(id, 'problem', 'reject');
             const isFav = hasAction(id, 'problem', 'favorite');
@@ -258,16 +251,37 @@ async function renderProblems(container) {
             else if (status === 'rejected') showStatus = isRejected;
             else if (status === 'favorite') showStatus = isFav;
             else if (status === 'pending') showStatus = !isApproved && !isRejected;
-            const showTag = !tag || (card.dataset.tags || '').includes(tag);
-            card.style.display = (showStatus && showTag) ? '' : 'none';
+            const showTag = !tag || (p.tags || '').includes(tag);
+            return showStatus && showTag;
         });
     }
+
+    function renderFilteredProblems() {
+        const filtered = getFilteredProblems();
+        problemsShown = problemsPageSize;
+        const list = document.getElementById('problemsList');
+        const wrap = document.getElementById('loadMoreProblemsWrap');
+        if (filtered.length === 0) {
+            list.innerHTML = emptyState('🔍', 'Eşleşen problem yok', 'Filtre kriterlerini değiştirmeyi deneyin.', null, null);
+            wrap.innerHTML = '';
+            return;
+        }
+        list.innerHTML = filtered.slice(0, problemsShown).map((p, i) => renderProblemCard(p, i)).join('');
+        window._filteredProblems = filtered;
+        if (filtered.length > problemsShown) {
+            wrap.innerHTML = `<button class="btn btn-secondary" id="loadMoreProblems" onclick="loadMoreProblems()">Daha Fazla Göster (${filtered.length - problemsShown} kalan)</button>`;
+        } else {
+            wrap.innerHTML = '';
+        }
+    }
+
+    renderFilteredProblems();
 
     document.querySelectorAll('#problemStatusFilter .filter-tag').forEach(tag => {
         tag.addEventListener('click', () => {
             document.querySelectorAll('#problemStatusFilter .filter-tag').forEach(t => t.classList.remove('active'));
             tag.classList.add('active');
-            applyProblemFilters();
+            renderFilteredProblems();
         });
     });
 
@@ -275,22 +289,23 @@ async function renderProblems(container) {
         tag.addEventListener('click', () => {
             document.querySelectorAll('#problemTagFilter .filter-tag').forEach(t => t.classList.remove('active'));
             tag.classList.add('active');
-            applyProblemFilters();
+            renderFilteredProblems();
         });
     });
 }
 
 window.loadMoreProblems = function() {
     problemsShown += problemsPageSize;
+    const filtered = window._filteredProblems || window._allProblems || [];
     const list = document.getElementById('problemsList');
-    const newCards = (window._allProblems || []).slice(problemsShown - problemsPageSize, problemsShown);
+    const newCards = filtered.slice(problemsShown - problemsPageSize, problemsShown);
     list.insertAdjacentHTML('beforeend', newCards.map((p, i) => renderProblemCard(p, problemsShown - problemsPageSize + i)).join(''));
-    const btn = document.getElementById('loadMoreProblems');
-    const remaining = (window._allProblems || []).length - problemsShown;
+    const remaining = filtered.length - problemsShown;
+    const wrap = document.getElementById('loadMoreProblemsWrap');
     if (remaining <= 0) {
-        document.getElementById('loadMoreProblemsWrap').remove();
+        wrap.innerHTML = '';
     } else {
-        btn.textContent = `Daha Fazla Göster (${remaining} kalan)`;
+        wrap.innerHTML = `<button class="btn btn-secondary" id="loadMoreProblems" onclick="loadMoreProblems()">Daha Fazla Göster (${remaining} kalan)</button>`;
     }
 }
 
@@ -370,13 +385,17 @@ function renderProblemsPreview(problems) {
 }
 
 // ── Ideas Page ─────────────────────────────────────────────────────
+let ideasPageSize = 30;
+
 async function renderIdeas(container) {
     const [ideas, tags] = await Promise.all([
-        apiGet('/api/ideas?limit=500'),
+        apiGet('/api/ideas?limit=5000'),
         apiGet('/api/tags'),
     ]);
     await loadUserActions();
     allTags = tags || [];
+    window._allIdeas = ideas || [];
+    window._ideasShown = ideasPageSize;
 
     const approvedCount = userActions.filter(a => a.item_type === 'idea' && a.action === 'approve').length;
     const rejectedCount = userActions.filter(a => a.item_type === 'idea' && a.action === 'reject').length;
@@ -415,31 +434,18 @@ async function renderIdeas(container) {
                     <span class="filter-tag" data-platform="webrazzi"><span class="platform-badge webrazzi" style="font-size:0.65rem;padding:2px 6px;">🇹🇷 Webrazzi</span></span>
                 </div>
             </div>
-            <div class="ideas-grid-v2" id="ideasGrid">
-                ${(ideas || []).length > 0
-                    ? ideas.slice(0, 30).map(idea => renderIdeaCard(idea)).join('')
-                    : emptyState('💡', 'Henüz fikir üretilmedi', 'Taramayı başlatıp fikir üretmek için çalıştırın.', '#scrape', 'Taramayı Başlat →')
-                }
-            </div>
-            ${(ideas || []).length > 30 ? `
-            <div style="text-align:center;margin-top:20px;" id="loadMoreIdeasWrap">
-                <button class="btn btn-secondary" id="loadMoreIdeas" onclick="loadMoreIdeas()">Daha Fazla Göster (${(ideas || []).length - 30} kalan)</button>
-            </div>` : ''}
+            <div class="ideas-grid-v2" id="ideasGrid"></div>
+            <div style="text-align:center;margin-top:20px;" id="loadMoreIdeasWrap"></div>
         </div>
     `;
 
-    window._allIdeas = ideas || [];
-    window._ideasShown = 30;
-
-    function applyIdeaFilters() {
+    function getFilteredIdeas() {
         const activeStatus = document.querySelector('#ideaStatusFilter .filter-tag.active');
         const activePlatform = document.querySelector('#ideaPlatformFilter .filter-tag.active');
         const status = activeStatus ? activeStatus.dataset.status : '';
         const platform = activePlatform ? activePlatform.dataset.platform : '';
-        const cards = document.querySelectorAll('.idea-card-v2');
-        cards.forEach(card => {
-            const id = card.dataset.id;
-            const cardPlatform = card.dataset.platform || '';
+        return window._allIdeas.filter(idea => {
+            const id = String(idea.id);
             const isApproved = hasAction(id, 'idea', 'approve');
             const isRejected = hasAction(id, 'idea', 'reject');
             const isFav = hasAction(id, 'idea', 'favorite');
@@ -448,17 +454,38 @@ async function renderIdeas(container) {
             else if (status === 'rejected') showStatus = isRejected;
             else if (status === 'favorite') showStatus = isFav;
             else if (status === 'pending') showStatus = !isApproved && !isRejected;
-            let showPlatform = !platform || cardPlatform === platform;
-            card.style.display = (showStatus && showPlatform) ? '' : 'none';
+            const showPlatform = !platform || (idea.platform || '') === platform;
+            return showStatus && showPlatform;
         });
     }
+
+    function renderFilteredIdeas() {
+        const filtered = getFilteredIdeas();
+        window._ideasShown = ideasPageSize;
+        window._filteredIdeas = filtered;
+        const grid = document.getElementById('ideasGrid');
+        const wrap = document.getElementById('loadMoreIdeasWrap');
+        if (filtered.length === 0) {
+            grid.innerHTML = emptyState('💡', 'Eşleşen fikir yok', 'Filtre kriterlerini değiştirmeyi deneyin.', null, null);
+            wrap.innerHTML = '';
+            return;
+        }
+        grid.innerHTML = filtered.slice(0, window._ideasShown).map(idea => renderIdeaCard(idea)).join('');
+        if (filtered.length > window._ideasShown) {
+            wrap.innerHTML = `<button class="btn btn-secondary" id="loadMoreIdeas" onclick="loadMoreIdeas()">Daha Fazla Göster (${filtered.length - window._ideasShown} kalan)</button>`;
+        } else {
+            wrap.innerHTML = '';
+        }
+    }
+
+    renderFilteredIdeas();
 
     // Status filter
     document.querySelectorAll('#ideaStatusFilter .filter-tag').forEach(tag => {
         tag.addEventListener('click', () => {
             document.querySelectorAll('#ideaStatusFilter .filter-tag').forEach(t => t.classList.remove('active'));
             tag.classList.add('active');
-            applyIdeaFilters();
+            renderFilteredIdeas();
         });
     });
 
@@ -467,22 +494,23 @@ async function renderIdeas(container) {
         tag.addEventListener('click', () => {
             document.querySelectorAll('#ideaPlatformFilter .filter-tag').forEach(t => t.classList.remove('active'));
             tag.classList.add('active');
-            applyIdeaFilters();
+            renderFilteredIdeas();
         });
     });
 }
 
 window.loadMoreIdeas = function() {
-    window._ideasShown += 30;
+    window._ideasShown += ideasPageSize;
+    const filtered = window._filteredIdeas || window._allIdeas || [];
     const grid = document.getElementById('ideasGrid');
-    const newIdeas = (window._allIdeas || []).slice(window._ideasShown - 30, window._ideasShown);
+    const newIdeas = filtered.slice(window._ideasShown - ideasPageSize, window._ideasShown);
     grid.insertAdjacentHTML('beforeend', newIdeas.map(idea => renderIdeaCard(idea)).join(''));
-    const btn = document.getElementById('loadMoreIdeas');
-    const remaining = (window._allIdeas || []).length - window._ideasShown;
+    const remaining = filtered.length - window._ideasShown;
+    const wrap = document.getElementById('loadMoreIdeasWrap');
     if (remaining <= 0) {
-        document.getElementById('loadMoreIdeasWrap').remove();
+        wrap.innerHTML = '';
     } else {
-        btn.textContent = `Daha Fazla Göster (${remaining} kalan)`;
+        wrap.innerHTML = `<button class="btn btn-secondary" id="loadMoreIdeas" onclick="loadMoreIdeas()">Daha Fazla Göster (${remaining} kalan)</button>`;
     }
 }
 
