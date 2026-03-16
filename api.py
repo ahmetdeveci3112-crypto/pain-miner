@@ -8,7 +8,7 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -147,7 +147,7 @@ async def api_problems(
 
 @app.get("/api/ideas")
 async def api_ideas(
-    limit: int = Query(50, ge=1, le=500),
+    limit: int = Query(500, ge=1, le=1000),
 ):
     """Generated app ideas."""
     ideas = get_app_ideas(limit=limit)
@@ -365,6 +365,66 @@ async def api_export(format: str = Query("json")):
             )
 
         return ideas
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# ── User Notes (custom ideas / brainstorm) ─────────────────────────
+@app.get("/api/notes")
+async def api_get_notes():
+    """Get all user notes."""
+    from db.reader import _get_connection
+    conn = _get_connection()
+    try:
+        rows = conn.execute("SELECT * FROM user_notes ORDER BY updated_at DESC").fetchall()
+        return [dict(row) for row in rows]
+    except Exception:
+        return []
+
+
+@app.post("/api/notes")
+async def api_create_note(request: Request):
+    """Create a new note."""
+    from db.reader import _get_connection
+    body = await request.json()
+    conn = _get_connection()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO user_notes (title, content, tags) VALUES (?, ?, ?)",
+            (body.get("title", ""), body.get("content", ""), body.get("tags", "")),
+        )
+        conn.commit()
+        return {"ok": True, "id": cursor.lastrowid}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.put("/api/notes/{note_id}")
+async def api_update_note(note_id: int, request: Request):
+    """Update an existing note."""
+    from db.reader import _get_connection
+    body = await request.json()
+    conn = _get_connection()
+    try:
+        conn.execute(
+            "UPDATE user_notes SET title=?, content=?, tags=?, updated_at=datetime('now') WHERE id=?",
+            (body.get("title", ""), body.get("content", ""), body.get("tags", ""), note_id),
+        )
+        conn.commit()
+        return {"ok": True}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.delete("/api/notes/{note_id}")
+async def api_delete_note(note_id: int):
+    """Delete a note."""
+    from db.reader import _get_connection
+    conn = _get_connection()
+    try:
+        conn.execute("DELETE FROM user_notes WHERE id=?", (note_id,))
+        conn.commit()
+        return {"ok": True}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 

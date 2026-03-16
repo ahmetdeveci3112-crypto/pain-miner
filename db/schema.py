@@ -105,6 +105,18 @@ def create_tables():
     );
     """)
 
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS user_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        content TEXT,
+        tags TEXT,
+        status TEXT DEFAULT 'active',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+    );
+    """)
+
     # Indexes
     c.execute("CREATE INDEX IF NOT EXISTS idx_posts_platform ON posts(platform);")
     c.execute("CREATE INDEX IF NOT EXISTS idx_posts_processed_at ON posts(processed_at);")

@@ -33,6 +33,7 @@ function navigateTo(page) {
         dashboard: 'Gösterge Paneli',
         problems: 'Problemler',
         ideas: 'Uygulama Fikirleri',
+        notes: 'Fikir Defteri',
         compare: 'Karşılaştır',
         scrape: 'Tarama',
         runs: 'Geçmiş',
@@ -112,6 +113,7 @@ function renderPage(page) {
         case 'dashboard': renderDashboard(container); break;
         case 'problems': renderProblems(container); break;
         case 'ideas': renderIdeas(container); break;
+        case 'notes': renderNotes(container); break;
         case 'compare': renderCompare(container); break;
         case 'scrape': renderScrape(container); break;
         case 'runs': renderRuns(container); break;
@@ -260,6 +262,8 @@ function renderProblemCard(p, index) {
                         </a>
                         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
                             <button class="icon-btn ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFav('${p.id}','problem',this)" title="Favorilere ekle">⭐</button>
+                            <button class="icon-btn approve-btn ${hasAction(p.id, 'problem', 'approve') ? 'active' : ''}" onclick="event.stopPropagation(); toggleApproval('${p.id}','approve',this,'problem')" title="Onayla">✅</button>
+                            <button class="icon-btn reject-btn ${hasAction(p.id, 'problem', 'reject') ? 'active' : ''}" onclick="event.stopPropagation(); toggleApproval('${p.id}','reject',this,'problem')" title="Reddet">❌</button>
                             <span class="platform-badge ${p.platform}">${platformIcon(p.platform)} ${p.platform}</span>
                             <span class="card-timestamp">🕐 ${formatDate(p.processed_at)}</span>
                         </div>
@@ -311,7 +315,7 @@ function renderProblemsPreview(problems) {
 // ── Ideas Page ─────────────────────────────────────────────────────
 async function renderIdeas(container) {
     const [ideas, tags] = await Promise.all([
-        apiGet('/api/ideas?limit=100'),
+        apiGet('/api/ideas?limit=500'),
         apiGet('/api/tags'),
     ]);
     await loadUserActions();
@@ -696,13 +700,15 @@ window.toggleFav = async function(itemId, itemType, btn) {
     btn.classList.toggle('active');
 }
 
-window.toggleApproval = async function(ideaId, action, btn) {
+window.toggleApproval = async function(itemId, action, btn, itemType) {
+    itemType = itemType || 'idea';
     const opposite = action === 'approve' ? 'reject' : 'approve';
-    if (hasAction(ideaId, 'idea', opposite)) {
-        await apiDelete(`/api/actions?item_id=${ideaId}&item_type=idea&action=${opposite}`);
+    if (hasAction(itemId, itemType, opposite)) {
+        await apiDelete(`/api/actions?item_id=${itemId}&item_type=${itemType}&action=${opposite}`);
     }
-    await toggleAction(ideaId, 'idea', action);
+    await toggleAction(itemId, itemType, action);
     if (currentPage === 'ideas') renderIdeas(document.getElementById('pageContent'));
+    else if (currentPage === 'problems') renderProblems(document.getElementById('pageContent'));
 }
 
 window.toggleCompare = function(ideaId, btn) {
@@ -751,6 +757,141 @@ function statusTR(s) { return { completed: 'Tamamlandı', running: 'Çalışıyo
 
 function emptyState(icon, title, text, href, btnText) {
     return `<div class="empty-state"><div class="empty-state-icon">${icon}</div><div class="empty-state-title">${title}</div><div class="empty-state-text">${text}</div><a href="${href}" class="btn btn-primary">${btnText}</a></div>`;
+}
+
+// ── Notes Page (Fikir Defteri) ─────────────────────────────────────
+async function renderNotes(container) {
+    const notes = (await apiGet('/api/notes')) || [];
+
+    container.innerHTML = `
+        <div class="page-section">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">📝 Fikir Defteri</div>
+                    <div class="section-subtitle">${notes.length} not — aklınıza gelen fikirleri buraya kaydedin</div>
+                </div>
+                <div class="section-actions">
+                    <button class="btn btn-primary" onclick="openNoteModal()">+ Yeni Fikir</button>
+                </div>
+            </div>
+            <div class="ideas-grid-v2" id="notesGrid">
+                ${notes.length > 0 ? notes.map(n => renderNoteCard(n)).join('') : emptyState('📝', 'Henüz not yok', 'Aklınıza gelen fikirleri kaydetmek için "Yeni Fikir" butonuna tıklayın.', null, null)}
+            </div>
+        </div>
+        <div id="noteModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeNoteModal()">
+            <div class="modal-content glass-card" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3 id="noteModalTitle">Yeni Fikir</h3>
+                    <button class="icon-btn" onclick="closeNoteModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="noteEditId" value="">
+                    <div class="form-group">
+                        <label>Başlık</label>
+                        <input type="text" id="noteTitle" class="note-input" placeholder="Fikir başlığı..." style="height:auto;padding:10px;font-size:1rem;">
+                    </div>
+                    <div class="form-group" style="margin-top:12px;">
+                        <label>Açıklama</label>
+                        <textarea id="noteContent" class="note-input" placeholder="Fikrinizi detaylıca açıklayın..." rows="6"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-top:12px;">
+                        <label>Etiketler (virgülle ayırın)</label>
+                        <input type="text" id="noteTags" class="note-input" placeholder="SaaS, otomasyon, e-ticaret..." style="height:auto;padding:10px;">
+                    </div>
+                </div>
+                <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end;padding:16px 20px;border-top:1px solid rgba(255,255,255,0.06);">
+                    <button class="btn btn-secondary" onclick="closeNoteModal()">İptal</button>
+                    <button class="btn btn-primary" onclick="saveNoteFromModal()">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderNoteCard(n) {
+    const tags = (n.tags || '').split(',').filter(t => t.trim());
+    const date = formatDate(n.updated_at || n.created_at);
+    return `
+        <div class="idea-card-v2" data-id="${n.id}" onclick="this.classList.toggle('expanded')">
+            <div class="idea-card-top">
+                <div class="idea-card-icon default">📝</div>
+                <div class="idea-card-title-area">
+                    <div class="idea-name-v2">${escapeHtml(n.title || 'İsimsiz')}</div>
+                    <div class="idea-type-row">
+                        ${tags.map(t => `<span class="tag">${escapeHtml(t.trim())}</span>`).join('')}
+                    </div>
+                </div>
+                <div class="idea-action-btns" onclick="event.stopPropagation()">
+                    <button class="icon-btn" onclick="openNoteModal(${n.id})" title="Düzenle">✏️</button>
+                    <button class="icon-btn reject-btn" onclick="deleteNote(${n.id})" title="Sil">🗑️</button>
+                </div>
+            </div>
+            <div class="idea-description-v2">${escapeHtml(n.content || '')}</div>
+            <div class="idea-expandable">
+                <div class="detail-footer">
+                    <span class="detail-date">📅 ${date}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+window.openNoteModal = async function(noteId) {
+    const modal = document.getElementById('noteModal');
+    const titleEl = document.getElementById('noteTitle');
+    const contentEl = document.getElementById('noteContent');
+    const tagsEl = document.getElementById('noteTags');
+    const editIdEl = document.getElementById('noteEditId');
+    const modalTitle = document.getElementById('noteModalTitle');
+
+    if (noteId) {
+        const notes = (await apiGet('/api/notes')) || [];
+        const note = notes.find(n => n.id === noteId);
+        if (note) {
+            titleEl.value = note.title || '';
+            contentEl.value = note.content || '';
+            tagsEl.value = note.tags || '';
+            editIdEl.value = noteId;
+            modalTitle.textContent = 'Fikri Düzenle';
+        }
+    } else {
+        titleEl.value = '';
+        contentEl.value = '';
+        tagsEl.value = '';
+        editIdEl.value = '';
+        modalTitle.textContent = 'Yeni Fikir';
+    }
+    modal.style.display = 'flex';
+}
+
+window.closeNoteModal = function() {
+    document.getElementById('noteModal').style.display = 'none';
+}
+
+window.saveNoteFromModal = async function() {
+    const title = document.getElementById('noteTitle').value.trim();
+    const content = document.getElementById('noteContent').value.trim();
+    const tags = document.getElementById('noteTags').value.trim();
+    const editId = document.getElementById('noteEditId').value;
+
+    if (!title) { alert('Başlık gerekli!'); return; }
+
+    const body = JSON.stringify({ title, content, tags });
+    const headers = { 'Content-Type': 'application/json' };
+
+    if (editId) {
+        await fetch(`${API}/api/notes/${editId}`, { method: 'PUT', headers, body });
+    } else {
+        await fetch(`${API}/api/notes`, { method: 'POST', headers, body });
+    }
+    closeNoteModal();
+    renderNotes(document.getElementById('pageContent'));
+}
+
+window.deleteNote = async function(noteId) {
+    if (!confirm('Bu notu silmek istediğinizden emin misiniz?')) return;
+    await fetch(`${API}/api/notes/${noteId}`, { method: 'DELETE' });
+    renderNotes(document.getElementById('pageContent'));
 }
 
 // ── Sidebar toggle (mobile) ───────────────────────────────────────
