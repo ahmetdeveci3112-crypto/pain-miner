@@ -111,7 +111,7 @@ async def api_stats():
 
 @app.get("/api/problems")
 async def api_problems(
-    limit: int = Query(20, ge=1, le=200),
+    limit: int = Query(1000, ge=1, le=5000),
     platform: str = Query(None),
 ):
     """Top problems/insights sorted by ROI weight."""

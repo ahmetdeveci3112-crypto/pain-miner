@@ -963,15 +963,24 @@ table { border-collapse: collapse; width: 100%; }
 }
 
 /* ── Responsive ────────────────────────────────────────────────── */
+/* ── Tablet ────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
     .two-col {
         grid-template-columns: 1fr;
     }
+
+    .ideas-grid-v2 {
+        grid-template-columns: 1fr;
+    }
 }
 
+/* ── Mobile ────────────────────────────────────────────────── */
 @media (max-width: 768px) {
+    /* Sidebar overlay */
     .sidebar {
         transform: translateX(-100%);
+        z-index: 100;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
     }
 
     .sidebar.open {
@@ -986,35 +995,313 @@ table { border-collapse: collapse; width: 100%; }
         display: block;
     }
 
+    /* Topbar compact */
     .topbar {
-        padding: 0 16px;
+        padding: 0 12px;
+        height: 52px;
     }
 
+    .topbar .page-title {
+        font-size: 1rem;
+    }
+
+    /* Page content breathing room */
     .page-content {
-        padding: 20px 16px;
+        padding: 16px 12px;
     }
 
+    /* Stats grid */
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
     }
 
-    .ideas-grid {
+    .stat-card {
+        padding: 14px 12px;
+    }
+
+    .stat-value {
+        font-size: 1.4rem;
+    }
+
+    .stat-label {
+        font-size: 0.65rem;
+    }
+
+    .stat-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+
+    /* Section headers */
+    .section-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+    }
+
+    .section-subtitle {
+        font-size: 0.75rem;
+    }
+
+    .section-actions {
+        width: 100%;
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .section-actions .btn {
+        flex: 1;
+        font-size: 0.72rem;
+        padding: 8px 12px;
+    }
+
+    /* Filter bars — horizontal scroll */
+    .filter-bar {
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+    }
+
+    .filter-tags {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 6px;
+        padding-bottom: 4px;
+    }
+
+    .filter-tags::-webkit-scrollbar {
+        display: none;
+    }
+
+    .filter-tag {
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-size: 0.72rem;
+        padding: 6px 10px;
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Ideas grid single column */
+    .ideas-grid, .ideas-grid-v2 {
         grid-template-columns: 1fr;
+        gap: 12px;
     }
 
+    /* Idea cards mobile */
+    .idea-card-v2 {
+        padding: 0;
+    }
+
+    .idea-card-top {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 14px;
+    }
+
+    .idea-card-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1.1rem;
+    }
+
+    .idea-card-title-area {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .idea-name-v2 {
+        font-size: 0.95rem;
+        word-break: break-word;
+    }
+
+    .idea-action-btns {
+        gap: 4px;
+    }
+
+    .icon-btn {
+        min-width: 36px;
+        min-height: 36px;
+        font-size: 0.85rem;
+    }
+
+    .idea-description-v2 {
+        padding: 0 14px 10px;
+        font-size: 0.8rem;
+    }
+
+    .idea-info-grid {
+        padding: 0 14px;
+    }
+
+    .idea-potential-row {
+        padding: 10px 14px;
+    }
+
+    .idea-expandable {
+        padding: 0 14px 14px;
+    }
+
+    /* Problem cards mobile */
+    .problem-card-main {
+        padding: 14px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .problem-rank {
+        width: 30px;
+        height: 30px;
+        font-size: 0.8rem;
+    }
+
+    .problem-title-row {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start !important;
+    }
+
+    .problem-title {
+        font-size: 0.88rem;
+        word-break: break-word;
+    }
+
+    .problem-title-row > div {
+        flex-wrap: wrap;
+        gap: 6px !important;
+    }
+
+    .problem-scores {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .score-pill {
+        font-size: 0.7rem;
+    }
+
+    .problem-description {
+        font-size: 0.78rem;
+    }
+
+    .problem-details {
+        padding: 14px;
+    }
+
+    .tags-container {
+        flex-wrap: wrap;
+    }
+
+    .tag {
+        font-size: 0.68rem;
+    }
+
+    /* Platform badges compact */
+    .platform-badge {
+        font-size: 0.6rem !important;
+        padding: 2px 6px !important;
+    }
+
+    .card-timestamp {
+        font-size: 0.6rem;
+    }
+
+    /* Preview lists */
+    .problems-preview-list {
+        gap: 8px;
+    }
+
+    .problem-preview-item {
+        padding: 10px;
+    }
+
+    /* Scrape controls */
     .scrape-controls {
         flex-direction: column;
         align-items: stretch;
     }
 
+    /* Data table */
     .data-table {
-        font-size: 0.82rem;
+        font-size: 0.75rem;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 8px 10px;
+    }
+
+    /* Modal fullscreen on mobile */
+    .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modal-content {
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    /* Note section compact */
+    .note-input {
+        font-size: 0.8rem;
     }
 }
 
+/* ── Small Mobile ──────────────────────────────────────────── */
 @media (max-width: 480px) {
     .stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+
+    .stat-card {
+        padding: 12px 10px;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+    }
+
+    .stat-label {
+        font-size: 0.6rem;
+        letter-spacing: 0.3px;
+    }
+
+    .page-content {
+        padding: 12px 8px;
+    }
+
+    .topbar {
+        padding: 0 8px;
+    }
+
+    .idea-card-top {
+        padding: 12px;
+    }
+
+    .idea-action-btns {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .problem-card-main {
+        padding: 12px;
+    }
+
+    .section-actions {
+        flex-direction: column;
     }
 }
 

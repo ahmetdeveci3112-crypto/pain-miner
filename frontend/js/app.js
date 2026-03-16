@@ -190,51 +190,108 @@ async function renderDashboard(container) {
 }
 
 // ── Problems Page ──────────────────────────────────────────────────
+let problemsPageSize = 30;
+let problemsShown = 30;
+
 async function renderProblems(container) {
     const [problems, tags] = await Promise.all([
-        apiGet('/api/problems?limit=100'),
+        apiGet('/api/problems?limit=5000'),
         apiGet('/api/tags'),
     ]);
     await loadUserActions();
     allTags = tags || [];
+    problemsShown = problemsPageSize;
+
+    const approvedCount = userActions.filter(a => a.item_type === 'problem' && a.action === 'approve').length;
+    const rejectedCount = userActions.filter(a => a.item_type === 'problem' && a.action === 'reject').length;
 
     container.innerHTML = `
         <div class="fade-in">
             <div class="section-header" style="margin-bottom: 16px;">
                 <div>
                     <div class="section-title">Keşfedilen Problemler</div>
-                    <div class="section-subtitle">${(problems || []).length} problem bulundu, ROI ağırlığına göre sıralı</div>
+                    <div class="section-subtitle">${(problems || []).length} problem — ✅ ${approvedCount} onaylı · ❌ ${rejectedCount} reddedildi</div>
                 </div>
             </div>
-            <div class="filter-bar" id="problemFilters">
-                <div class="filter-label">🏷️ Etiket Filtresi:</div>
+            <div class="filter-bar" id="problemStatusFilter">
+                <div class="filter-label">🎯 Durum:</div>
+                <div class="filter-tags">
+                    <span class="filter-tag active" data-status="">Tümü</span>
+                    <span class="filter-tag" data-status="approved">✅ Onaylı</span>
+                    <span class="filter-tag" data-status="rejected">❌ Reddedildi</span>
+                    <span class="filter-tag" data-status="favorite">⭐ Favoriler</span>
+                    <span class="filter-tag" data-status="pending">📋 Bekleyen</span>
+                </div>
+            </div>
+            <div class="filter-bar" id="problemTagFilter">
+                <div class="filter-label">🏷️ Etiket:</div>
                 <div class="filter-tags" id="filterTags">
                     <span class="filter-tag active" data-tag="">Tümü</span>
                     ${allTags.slice(0, 15).map(t => `<span class="filter-tag" data-tag="${escapeHtml(t.tag)}">${escapeHtml(t.tag)} <small>(${t.count})</small></span>`).join('')}
                 </div>
             </div>
             <div class="problems-list" id="problemsList">
-                ${renderProblemCards(problems || [])}
+                ${renderProblemCards((problems || []).slice(0, problemsShown))}
             </div>
+            ${(problems || []).length > problemsShown ? `
+            <div style="text-align:center;margin-top:20px;" id="loadMoreProblemsWrap">
+                <button class="btn btn-secondary" id="loadMoreProblems" onclick="loadMoreProblems()">Daha Fazla Göster (${(problems || []).length - problemsShown} kalan)</button>
+            </div>` : ''}
         </div>
     `;
 
-    // Tag filter click
-    document.querySelectorAll('.filter-tag').forEach(tag => {
+    window._allProblems = problems || [];
+
+    function applyProblemFilters() {
+        const activeStatus = document.querySelector('#problemStatusFilter .filter-tag.active');
+        const activeTag = document.querySelector('#problemTagFilter .filter-tag.active');
+        const status = activeStatus ? activeStatus.dataset.status : '';
+        const tag = activeTag ? activeTag.dataset.tag : '';
+        const cards = document.querySelectorAll('.problem-card');
+        cards.forEach(card => {
+            const id = card.dataset.id || '';
+            const isApproved = hasAction(id, 'problem', 'approve');
+            const isRejected = hasAction(id, 'problem', 'reject');
+            const isFav = hasAction(id, 'problem', 'favorite');
+            let showStatus = true;
+            if (status === 'approved') showStatus = isApproved;
+            else if (status === 'rejected') showStatus = isRejected;
+            else if (status === 'favorite') showStatus = isFav;
+            else if (status === 'pending') showStatus = !isApproved && !isRejected;
+            const showTag = !tag || (card.dataset.tags || '').includes(tag);
+            card.style.display = (showStatus && showTag) ? '' : 'none';
+        });
+    }
+
+    document.querySelectorAll('#problemStatusFilter .filter-tag').forEach(tag => {
         tag.addEventListener('click', () => {
-            document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#problemStatusFilter .filter-tag').forEach(t => t.classList.remove('active'));
             tag.classList.add('active');
-            const selectedTag = tag.dataset.tag;
-            const cards = document.querySelectorAll('.problem-card');
-            cards.forEach(card => {
-                if (!selectedTag || card.dataset.tags.includes(selectedTag)) {
-                    card.style.display = '';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
+            applyProblemFilters();
         });
     });
+
+    document.querySelectorAll('#problemTagFilter .filter-tag').forEach(tag => {
+        tag.addEventListener('click', () => {
+            document.querySelectorAll('#problemTagFilter .filter-tag').forEach(t => t.classList.remove('active'));
+            tag.classList.add('active');
+            applyProblemFilters();
+        });
+    });
+}
+
+window.loadMoreProblems = function() {
+    problemsShown += problemsPageSize;
+    const list = document.getElementById('problemsList');
+    const newCards = (window._allProblems || []).slice(problemsShown - problemsPageSize, problemsShown);
+    list.insertAdjacentHTML('beforeend', newCards.map((p, i) => renderProblemCard(p, problemsShown - problemsPageSize + i)).join(''));
+    const btn = document.getElementById('loadMoreProblems');
+    const remaining = (window._allProblems || []).length - problemsShown;
+    if (remaining <= 0) {
+        document.getElementById('loadMoreProblemsWrap').remove();
+    } else {
+        btn.textContent = `Daha Fazla Göster (${remaining} kalan)`;
+    }
 }
 
 function renderProblemCards(problems) {
@@ -251,7 +308,7 @@ function renderProblemCard(p, index) {
     const note = getNote(p.id, 'problem');
 
     return `
-        <div class="problem-card glass-card" data-tags="${escapeHtml(p.tags || '')}" data-platform="${p.platform || ''}" onclick="this.classList.toggle('expanded')">
+        <div class="problem-card glass-card" data-id="${p.id}" data-tags="${escapeHtml(p.tags || '')}" data-platform="${p.platform || ''}" onclick="this.classList.toggle('expanded')">
             <div class="problem-card-main">
                 <div class="problem-rank">${index + 1}</div>
                 <div class="problem-content">
@@ -360,12 +417,19 @@ async function renderIdeas(container) {
             </div>
             <div class="ideas-grid-v2" id="ideasGrid">
                 ${(ideas || []).length > 0
-                    ? ideas.map(idea => renderIdeaCard(idea)).join('')
+                    ? ideas.slice(0, 30).map(idea => renderIdeaCard(idea)).join('')
                     : emptyState('💡', 'Henüz fikir üretilmedi', 'Taramayı başlatıp fikir üretmek için çalıştırın.', '#scrape', 'Taramayı Başlat →')
                 }
             </div>
+            ${(ideas || []).length > 30 ? `
+            <div style="text-align:center;margin-top:20px;" id="loadMoreIdeasWrap">
+                <button class="btn btn-secondary" id="loadMoreIdeas" onclick="loadMoreIdeas()">Daha Fazla Göster (${(ideas || []).length - 30} kalan)</button>
+            </div>` : ''}
         </div>
     `;
+
+    window._allIdeas = ideas || [];
+    window._ideasShown = 30;
 
     function applyIdeaFilters() {
         const activeStatus = document.querySelector('#ideaStatusFilter .filter-tag.active');
@@ -406,6 +470,20 @@ async function renderIdeas(container) {
             applyIdeaFilters();
         });
     });
+}
+
+window.loadMoreIdeas = function() {
+    window._ideasShown += 30;
+    const grid = document.getElementById('ideasGrid');
+    const newIdeas = (window._allIdeas || []).slice(window._ideasShown - 30, window._ideasShown);
+    grid.insertAdjacentHTML('beforeend', newIdeas.map(idea => renderIdeaCard(idea)).join(''));
+    const btn = document.getElementById('loadMoreIdeas');
+    const remaining = (window._allIdeas || []).length - window._ideasShown;
+    if (remaining <= 0) {
+        document.getElementById('loadMoreIdeasWrap').remove();
+    } else {
+        btn.textContent = `Daha Fazla Göster (${remaining} kalan)`;
+    }
 }
 
 function renderIdeaCard(idea) {
